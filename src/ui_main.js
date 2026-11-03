@@ -40,23 +40,29 @@ function startLocal() {
 function localOver() {
   onLocalEnd = null;
   sound('end');
-  const win = game.winner, me = game.humanTeam;
-  showEnd({
-    title: win < 0 ? 'Empate' : (win === me ? '¡Ganaste!' : 'Perdiste'), res: win < 0 ? 'draw' : (win === me ? 'win' : 'lose'),
-    score: game.score, colors: KIT_DEFAULT,
-    meta: DIFF[LOCAL.diff].label + ' · ' + LOCAL.size + ' vs ' + LOCAL.size + ' · cancha ' + pitchText(LOCAL.pitch) + (game.overtime ? ' · definido en prórroga' : ''),
-    buttons: [
-      { text: 'Revancha', go: true, fn: startLocal },
-      { text: 'Cambiar opciones', fn: () => { setState('idle'); showScreen('local'); } },
-      { text: 'Inicio', fn: () => { setState('idle'); showScreen('home'); } }
-    ]
-  });
+  const me = game.humanTeam, other = 1 - me;
+  const done = pen => {
+    const win = pen ? (pen.u > pen.c ? me : other) : game.winner;
+    showEnd({
+      title: win < 0 ? 'Empate' : (win === me ? '¡Ganaste!' : 'Perdiste'), res: win < 0 ? 'draw' : (win === me ? 'win' : 'lose'),
+      score: game.score, colors: KIT_DEFAULT,
+      meta: DIFF[LOCAL.diff].label + ' · ' + LOCAL.size + ' vs ' + LOCAL.size + ' · cancha ' + pitchText(LOCAL.pitch) + (pen ? ' · penales ' + pen.u + '–' + pen.c : ''),
+      buttons: [
+        { text: 'Revancha', go: true, fn: startLocal },
+        { text: 'Cambiar opciones', fn: () => { setState('idle'); showScreen('local'); } },
+        { text: 'Inicio', fn: () => { setState('idle'); showScreen('home'); } }
+      ]
+    });
+  };
+  if (game.tied) {
+    setState('ended');
+    startPenalties({ names: ['Vos', 'La máquina'], kits: [KIT_DEFAULT[me], KIT_DEFAULT[other]], diff: LOCAL.diff, onDone: done });
+  } else done(null);
 }
 
 /* ---------- Pantallas ---------- */
 const ICONS = {
   bot: '<svg viewBox="0 0 64 40" aria-hidden="true"><circle cx="14" cy="20" r="11" fill="#e56e56" stroke="#101412" stroke-width="3"/><circle cx="50" cy="20" r="11" fill="#5689e5" stroke="#101412" stroke-width="3"/><circle cx="32" cy="20" r="5" fill="#fff" stroke="#101412" stroke-width="2.5"/></svg>',
-  online: '<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M20 20h24" stroke="#c7e6bd" stroke-width="3" stroke-dasharray="3 5" stroke-linecap="round"/><circle cx="12" cy="20" r="9" fill="#e56e56" stroke="#101412" stroke-width="3"/><circle cx="52" cy="20" r="9" fill="#5689e5" stroke="#101412" stroke-width="3"/><path d="M26 11a9 9 0 0 1 12 0M22 6a15 15 0 0 1 20 0" fill="none" stroke="#c7e6bd" stroke-width="2.5" stroke-linecap="round"/></svg>',
   cup: '<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M22 4h20v10c0 8-4 12-10 12s-10-4-10-12z" fill="#e8c14a" stroke="#101412" stroke-width="3" stroke-linejoin="round"/><path d="M22 7h-8c0 8 3 11 8 12M42 7h8c0 8-3 11-8 12" fill="none" stroke="#e8c14a" stroke-width="3" stroke-linecap="round"/><path d="M32 26v6M24 36h16" stroke="#e8c14a" stroke-width="4" stroke-linecap="round"/></svg>'
 };
 
@@ -74,7 +80,6 @@ function buildHome() {
   c.append(h('div', { class: 'brand' }, logo, h('div', null, h('h1', { text: 'Fútbol de Discos' }), h('p', { class: 'sub', text: 'Elegí cómo querés jugar.' }))));
   c.append(h('div', { class: 'modes' },
     modeCard(ICONS.bot, 'Contra la máquina', '1v1, 2v2 o 3v3 con cuatro dificultades y cancha a medida.', () => { buildLocal(); showScreen('local'); }),
-    modeCard(ICONS.online, 'Online', 'Salas con código para jugar con amigos, con bots que completan.', () => openOnline()),
     modeCard(ICONS.cup, 'Mundial', 'Elegí un país, jugá grupos y llaves hasta la final.', () => { buildWcSetup(); showScreen('wcsetup'); })));
   c.append(h('details', { class: 'keys' },
     h('summary', { text: 'Controles' }),
@@ -102,14 +107,9 @@ function init() {
   mkScreen('pause', 'overlay').append(card('small'));
   mkScreen('end', 'overlay').append(card('small'));
   initWc();
-  initOnline();
+  initPens();
   buildHome();
   startLoop();
-  let joined = false;
-  try {
-    const m = /^#sala-([A-Za-z]{4})$/.exec(location.hash);
-    if (m) { joined = true; openOnline(m[1].toUpperCase()); }
-  } catch (e) { /* ok */ }
-  if (!joined) showScreen('home');
+  showScreen('home');
 }
 init();

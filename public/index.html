@@ -145,48 +145,6 @@ details.keys b { color: var(--fg); font-weight: 600; min-width: 62px; display: i
 kbd { font: 600 12px var(--f-display); color: var(--fg); background: var(--panel-2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 2px 7px; }
 .soundbtn { align-self: flex-start; }
 
-/* ---------- Online ---------- */
-.field { display: grid; gap: 6px; }
-.field label, .chat h4 { font: 600 12px var(--f-body); letter-spacing: .09em; text-transform: uppercase; color: var(--mute); }
-input[type="text"] {
-  box-sizing: border-box; width: 100%; background: var(--panel-2); color: var(--fg); border: 1px solid var(--line);
-  border-radius: 8px; padding: 11px 12px; font: 500 16px var(--f-body);
-}
-input[type="text"]:focus-visible { outline: 2px solid var(--lime); outline-offset: 1px; }
-input.code { text-transform: uppercase; letter-spacing: .3em; text-align: center; font: 700 20px var(--f-display); width: 120px; }
-.joinbox { display: flex; gap: 8px; flex: 1 1 auto; }
-.joinbox .btn { flex: 0 0 auto; }
-.status { margin: 0; font-size: 14px; padding: 8px 12px; border-radius: 8px; background: var(--panel-2); border-left: 4px solid var(--mute); }
-.status.ok { border-left-color: var(--ok); } .status.bad { border-left-color: var(--bad); } .status.wait { border-left-color: var(--gold); }
-.listhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.rooms { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.rooms .empty { color: var(--mute); padding: 14px; text-align: center; border: 1px dashed var(--line); border-radius: 10px; }
-.roomrow { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
-.rr-t { display: grid; min-width: 0; } .rr-t b { font-family: var(--f-display); overflow-wrap: anywhere; } .rr-t span { color: var(--mute); font-size: 13px; }
-.rr-n { font: 700 16px var(--f-display); font-variant-numeric: tabular-nums; }
-
-.invite { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
-.bigcode { display: block; font: 700 34px/1.1 var(--f-display); letter-spacing: .22em; color: var(--lime); }
-.teamcols { display: grid; grid-template-columns: 1fr; gap: 10px; }
-.tcol { background: var(--panel-2); border: 1px solid var(--line); border-top-width: 4px; border-radius: 10px; padding: 12px; display: grid; gap: 8px; align-content: start; min-width: 0; }
-.tcol.red { border-top-color: var(--red); } .tcol.blue { border-top-color: var(--blue); } .tcol.spec { border-top-color: var(--mute); }
-.tcol h4 { display: flex; justify-content: space-between; color: var(--fg); }
-.tcol h4 small { color: var(--mute); font-size: 13px; }
-.tcol ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; min-height: 28px; }
-.tcol li { overflow-wrap: anywhere; } .tcol li.me { color: var(--lime); font-weight: 600; } .tcol li.empty { color: var(--mute); }
-.tcol em { color: var(--mute); font-size: 12px; font-style: normal; margin-left: 4px; }
-.cfgbox { display: grid; gap: 12px; }
-.summary { margin: 0; color: var(--mute); background: var(--panel-2); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
-.chat { display: grid; gap: 8px; }
-.chatlog { height: 130px; overflow-y: auto; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 14px; -webkit-user-select: text; user-select: text; }
-.cl { margin: 0 0 3px; overflow-wrap: anywhere; } .cl.sys { color: var(--mute); }
-.cl.t0 b { color: var(--red); } .cl.t1 b { color: var(--blue); } .cl.t2 b { color: var(--mute); }
-#toast {
-  position: fixed; z-index: 20; left: 50%; transform: translateX(-50%);
-  bottom: calc(max(16px, env(safe-area-inset-bottom, 0px)) + 8px);
-  background: var(--fg); color: #101412; font: 600 15px var(--f-body); padding: 10px 16px; border-radius: 10px; max-width: calc(100% - 32px);
-}
-
 /* ---------- Mundial ---------- */
 .kit { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #101412; flex: none; box-sizing: border-box; vertical-align: middle; }
 .kit.big { width: 34px; height: 34px; border-width: 3px; }
@@ -249,6 +207,33 @@ input.code { text-transform: uppercase; letter-spacing: .3em; text-align: center
 .bm em { font-size: 11px; color: var(--mute); font-style: normal; letter-spacing: .06em; text-transform: uppercase; } .bm small { color: var(--mute); font-size: 11px; }
 .bt { display: flex; gap: 8px; align-items: center; } .bt.w { font-weight: 700; } .bt.me .bn { color: var(--lime); } .bt .bg { margin-left: auto; font: 700 15px var(--f-display); font-variant-numeric: tabular-nums; }
 
+/* ---------- Penales ---------- */
+.card.pk { max-width: 620px; text-align: center; }
+.pk-head { display: grid; gap: 8px; }
+.pk-team { display: grid; grid-template-columns: auto 1fr auto auto; gap: 10px; align-items: center; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; text-align: left; }
+.pk-kit { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #101412; box-sizing: border-box; }
+.pk-team b { font: 600 15px var(--f-display); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-team em { font: 700 24px var(--f-display); font-style: normal; min-width: 22px; text-align: right; font-variant-numeric: tabular-nums; }
+.pk-dots { display: inline-flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+.pk-dots i { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--mute); box-sizing: border-box; }
+.pk-dots i.ok { background: var(--ok); border-color: var(--ok); } .pk-dots i.no { background: var(--bad); border-color: var(--bad); }
+.pk-info { margin: 0; min-height: 2.6em; font: 600 17px/1.3 var(--f-body); }
+.pk-info.final { font: 700 24px/1.2 var(--f-display); color: var(--lime); }
+.pk-hint { margin: 0; min-height: 1.3em; font-size: 14px; color: var(--mute); }
+.pk-goal { position: relative; width: 100%; aspect-ratio: 5 / 2; box-sizing: border-box; margin: 14px 0 66px; border: 6px solid var(--fg); border-bottom: 0; border-radius: 4px 4px 0 0;
+  background: repeating-linear-gradient(45deg, rgba(255,255,255,.07) 0 2px, transparent 2px 12px), repeating-linear-gradient(-45deg, rgba(255,255,255,.07) 0 2px, transparent 2px 12px), #1d2a24; }
+.pk-goal::after { content: ""; position: absolute; left: -14%; right: -14%; bottom: 0; height: 3px; background: var(--line); }
+.pk-keeper { position: absolute; bottom: 5%; left: 50%; width: 12%; aspect-ratio: 1; border-radius: 50%; border: 3px solid #101412; box-sizing: border-box; transform: translate(-50%, 0); transition: left .35s ease-out, transform .35s ease-out; }
+.pk-ball { position: absolute; width: 6.4%; aspect-ratio: 1; border-radius: 50%; background: #fff; border: 3px solid #101412; box-sizing: border-box; left: 50%; top: 138%; transform: translate(-50%, -50%);
+  transition: left .55s cubic-bezier(.2,.7,.3,1), top .55s cubic-bezier(.2,.7,.3,1), transform .55s; }
+.pk-cells { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; }
+.pk-cell { background: transparent; border: 1px dashed rgba(255,255,255,.18); cursor: pointer; padding: 0; color: inherit; }
+.pk-cell:hover, .pk-cell:focus-visible { background: rgba(199,230,189,.22); outline: none; }
+.pk-flash { position: absolute; inset: 0; display: grid; place-items: center; font: 700 clamp(26px, 8vw, 44px) var(--f-display); opacity: 0; pointer-events: none; text-shadow: 0 2px 0 #101412, 0 0 12px rgba(8,12,10,.9); }
+.pk-flash.on { opacity: 1; } .pk-flash.good { color: var(--lime); } .pk-flash.bad { color: var(--bad); }
+.pk-foot { display: flex; justify-content: center; }
+.pk-foot .btn { min-width: 200px; }
+
 /* ---------- Fin de partido / pausa ---------- */
 #endTitle[data-res="win"] { color: var(--lime); } #endTitle[data-res="lose"] { color: var(--red); }
 #endScore { font: 700 56px/1 var(--f-display); display: flex; justify-content: center; gap: 16px; align-items: center; font-variant-numeric: tabular-nums; }
@@ -304,7 +289,6 @@ input.code { text-transform: uppercase; letter-spacing: .3em; text-align: center
   <div id="stickBase"><div id="stickKnob"></div></div>
   <button id="kickBtn" type="button">Patear</button>
 </div>
-<div id="toast" role="status" hidden></div>
 <script>
 'use strict';
 /* ===== Motor compartido (navegador y servidor): física + bots ===== */
@@ -379,7 +363,7 @@ function createGame(cfg) {
   const G = {
     cfg, geo, kits: cfg.kits || null, players: [], ball: mkDisc(0, 0, C.ballR, 1, C.bBC), posts: [], nTeam: [0, 0],
     score: [0, 0], tick: 0, playTicks: 0, phase: 'kickoff', kickTeam: 0,
-    goalTimer: 0, lastGoalTeam: -1, lastTouch: null, overtime: false, over: false,
+    goalTimer: 0, lastGoalTeam: -1, lastTouch: null, tied: false, over: false,
     winner: -1, pendingEnd: false, banner: null, events: [], humanTeam: cfg.humanTeam
   };
   for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
@@ -491,22 +475,6 @@ function kickoffLimit(G, p) {
   }
 }
 
-/* Un tick de un jugador humano solo contra las paredes y los postes (sin pelota; los otros jugadores entran como discos fijos).
-   El cliente lo usa para mover a su propio jugador sin esperar al servidor. */
-function predictPlayer(G, S, inp, others) {
-  let dx = inp.dx, dy = inp.dy;
-  const m = Math.hypot(dx, dy);
-  if (m > 1) { dx /= m; dy /= m; }
-  const a = inp.kick ? C.kickAcc : C.acc;
-  S.vx += dx * a; S.vy += dy * a;
-  S.x += S.vx; S.y += S.vy;
-  if (others) for (const o of others) discDisc(o, S);   // los demás jugadores cuentan como sólidos
-  for (const post of G.posts) discDisc(post, S);
-  clampPlayerBox(G.geo, S);
-  if (G.phase === 'kickoff') kickoffLimit(G, S);
-  S.vx *= C.pDamp; S.vy *= C.pDamp;
-}
-
 function step(G) {
   if (G.over) return;
   G.tick++;
@@ -559,14 +527,10 @@ function step(G) {
     G.playTicks++;
     if (ball.x < -geo.W) goal(G, 1);
     else if (ball.x > geo.W) goal(G, 0);
-    else if (G.cfg.timeLimit > 0 && !G.overtime && G.playTicks >= G.cfg.timeLimit * 3600) {
-      if (G.score[0] !== G.score[1]) finish(G);
-      else if (G.cfg.allowDraw) finish(G);
-      else {
-        G.overtime = true;
-        G.banner = { text: 'Prórroga', sub: 'El próximo gol gana', team: -1, t: 150 };
-        ev(G, 'overtime');
-      }
+    else if (G.cfg.timeLimit > 0 && G.playTicks >= G.cfg.timeLimit * 3600) {
+      /* empate al terminar el tiempo: en los partidos que no admiten empate se define por penales (lo resuelve la interfaz) */
+      G.tied = G.score[0] === G.score[1] && !G.cfg.allowDraw;
+      finish(G);
     }
   } else if (G.phase === 'goal') {
     G.goalTimer--;
@@ -591,7 +555,7 @@ function goal(G, team) {
     t: C.goalTicks
   };
   const lim = G.cfg.scoreLimit;
-  G.pendingEnd = (lim > 0 && G.score[team] >= lim) || G.overtime;
+  G.pendingEnd = lim > 0 && G.score[team] >= lim;
   ev(G, 'goal');
 }
 
@@ -759,7 +723,7 @@ function aiDecide(G, p) {
   }
 }
 
-if (typeof module !== 'undefined') module.exports = { predictCross, predictPlayer, C, PITCHES, PITCH_LIMITS, DIFF, makeGeo, createGame, step };
+if (typeof module !== 'undefined') module.exports = { predictCross, C, PITCHES, PITCH_LIMITS, DIFF, makeGeo, createGame, step };
 
 /* ===== Mundial: sorteo, fase de grupos, llaves y simulación (sin DOM) ===== */
 const WC = (() => {
@@ -1024,7 +988,7 @@ const WC = (() => {
     }
   }
 
-  function submitUser(st, userGoals, oppGoals) {
+  function submitUser(st, userGoals, oppGoals, userPens, oppPens) {
     const p = pending(st);
     if (!p) return;
     const userIsA = p.a === st.user;
@@ -1035,7 +999,10 @@ const WC = (() => {
       const m = st.ko.rounds[st.ko.cur].matches[p.mi];
       m.ga = ga; m.gb = gb;
       if (ga !== gb) m.w = ga > gb ? m.a : m.b;
-      else { const r = simKo(m.a, m.b); m.pen = r.pen; m.w = r.w; }
+      else if (userPens != null && oppPens != null && userPens !== oppPens) {
+        m.pen = userIsA ? [userPens, oppPens] : [oppPens, userPens];
+        m.w = userPens > oppPens ? st.user : (userIsA ? m.b : m.a);
+      } else { const r = simKo(m.a, m.b); m.pen = r.pen; m.w = r.w; }
     }
     st.step++;
     advance(st);
@@ -1068,6 +1035,66 @@ const WC = (() => {
 })();
 
 if (typeof module !== 'undefined') module.exports = WC;
+
+/* ===== Tanda de penales: reglas y probabilidades (sin interfaz) =====
+   "u" es el jugador y "c" la máquina. Cada tiro apunta a una zona del arco:
+   columna 0 (izquierda), 1 (centro), 2 (derecha) y fila 0 (arriba) o 1 (abajo). */
+const PEN = (() => {
+  const READ = { easy: 0.15, normal: 0.3, hard: 0.45, expert: 0.55 };   // chance de que el arquero lea tus tiros anteriores
+  const HIGH = { easy: 0.25, normal: 0.35, hard: 0.45, expert: 0.5 };   // chance de que la máquina patee arriba
+
+  function create(first) { return { first, u: [], c: [], done: false, winner: null }; }
+  function turn(s) {
+    const second = s.first === 'u' ? 'c' : 'u';
+    return (s.u.length + s.c.length) % 2 === 0 ? s.first : second;
+  }
+  function score(s) { return [s.u.filter(Boolean).length, s.c.filter(Boolean).length]; }
+
+  /* anota un tiro y decide si la tanda ya terminó: 5 tiros cada uno (se corta apenas uno no puede alcanzar) y después muerte súbita */
+  function record(s, who, goal) {
+    if (s.done) return s;
+    s[who].push(!!goal);
+    const [su, sc] = score(s), nu = s.u.length, nc = s.c.length;
+    if (nu < 5 || nc < 5) {
+      if (su > sc + (5 - nc)) { s.done = true; s.winner = 'u'; }
+      else if (sc > su + (5 - nu)) { s.done = true; s.winner = 'c'; }
+    } else if (nu === nc && su !== sc) { s.done = true; s.winner = su > sc ? 'u' : 'c'; }
+    return s;
+  }
+
+  /* 'goal' | 'save' | 'miss' */
+  function resolve(shot, keeperCol, rnd) {
+    const high = shot.row === 0, side = shot.col !== 1;
+    const missP = high ? (side ? 0.12 : 0.05) : 0.03;
+    if (rnd() < missP) return 'miss';
+    if (keeperCol === shot.col) {
+      const saveP = high ? (side ? 0.5 : 0.6) : (side ? 0.7 : 0.85);
+      return rnd() < saveP ? 'save' : 'goal';
+    }
+    return 'goal';
+  }
+
+  function aiShot(rnd, diff) {
+    const row = rnd() < (HIGH[diff] != null ? HIGH[diff] : 0.35) ? 0 : 1;
+    const col = rnd() < 0.2 ? 1 : (rnd() < 0.5 ? 0 : 2);
+    return { col, row };
+  }
+
+  /* el arquero a veces lee hacia dónde pateás más seguido */
+  function aiKeeper(rnd, diff, hist) {
+    if (hist.length >= 2 && rnd() < (READ[diff] != null ? READ[diff] : 0.3)) {
+      const n = [0, 0, 0];
+      for (const c of hist) n[c]++;
+      const best = Math.max(...n), tops = [0, 1, 2].filter(c => n[c] === best);
+      return tops[Math.floor(rnd() * tops.length)];
+    }
+    return Math.floor(rnd() * 3);
+  }
+
+  return { create, turn, score, record, resolve, aiShot, aiKeeper };
+})();
+
+if (typeof module !== 'undefined') module.exports = PEN;
 
 /* ===== Base de la interfaz: utilidades, controles, entrada, sonido, dibujo y bucle ===== */
 const $ = id => document.getElementById(id);
@@ -1231,13 +1258,12 @@ const cv = $('cv'), g2 = cv.getContext('2d');
 let dpr = 1, VW = 0, VH = 0;
 let game = null;          // partida local (contra la máquina o Mundial)
 let view = null;          // lo que se está dibujando
-let mode = 'none';        // 'local' | 'wc' | 'online'
+let mode = 'none';        // 'local' | 'wc'
 let state = 'idle';       // 'idle' | 'playing' | 'paused' | 'ended'
 let acc = 0, lastT = 0;
 const keys = {};
 const tin = { dx: 0, dy: 0, kick: false, active: false };
 const isTouch = (window.matchMedia && matchMedia('(pointer: coarse)').matches) || 'ontouchstart' in window;
-const hooks = { onlineFrame: null, onlineInput: null, onPauseKey: null };
 
 function resize() {
   dpr = Math.min(window.devicePixelRatio || 1, 2.5);
@@ -1248,7 +1274,7 @@ window.addEventListener('resize', resize);
 
 function setState(s) {
   state = s;
-  $('pauseBtn').hidden = !(s === 'playing' || (s === 'paused' && mode === 'online'));
+  $('pauseBtn').hidden = s !== 'playing';
   $('touch').hidden = !((s === 'playing') && isTouch);
   if (s === 'playing') showScreen(null);
   else if (s === 'paused') showScreen('pause');
@@ -1279,7 +1305,7 @@ window.addEventListener('keyup', e => {
   else if (KICK[e.code]) keys.k = false;
 });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
-document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'playing' && mode !== 'online') pauseGame(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'playing') pauseGame(); });
 
 let stickId = null, kickId = null, sx0 = 0, sy0 = 0;
 const base = $('stickBase'), knob = $('stickKnob'), kickBtn = $('kickBtn');
@@ -1369,7 +1395,7 @@ function resumeGame() {
 function buildPause() {
   const c = SCREENS.pause.firstChild;
   clearEl(c);
-  c.append(h('h2', { text: mode === 'online' ? 'Menú' : 'Pausa' }));
+  c.append(h('h2', { text: 'Pausa' }));
   const st = h('div', { class: 'stack' });
   st.append(h('button', { class: 'btn go', type: 'button', text: 'Seguir jugando', onclick: resumeGame }));
   for (const b of (pauseOpts ? pauseOpts() : [])) st.append(h('button', { class: 'btn', type: 'button', text: b.text, onclick: b.fn }));
@@ -1484,7 +1510,7 @@ function drawGame(G, alpha, extra) {
   if (VH > VW * 1.2) {
     g2.fillStyle = 'rgba(233,240,234,.8)'; g2.font = '600 14px ' + BODY; g2.textAlign = 'center';
     g2.fillText('Girá el dispositivo para jugar en horizontal', VW / 2, VH - 24);
-  } else if (!isTouch && G.phase === 'kickoff' && G.tick < 300 && !(extra && extra.online)) {
+  } else if (!isTouch && G.phase === 'kickoff' && G.tick < 300) {
     g2.fillStyle = 'rgba(233,240,234,.7)'; g2.font = '500 14px ' + BODY; g2.textAlign = 'center';
     g2.fillText('Mover: WASD o flechas   ·   Patear: X o Espacio   ·   Pausa: P', VW / 2, VH - 18);
   }
@@ -1499,7 +1525,7 @@ function drawHud(G, extra) {
   g2.fillStyle = kitOf(G, 0); g2.fillText(String(G.score[0]), x0 + 28, y0 + hh / 2 + 1);
   g2.fillStyle = kitOf(G, 1); g2.fillText(String(G.score[1]), x0 + w - 28, y0 + hh / 2 + 1);
   g2.font = '600 20px ' + FONT;
-  g2.fillStyle = G.overtime ? '#ffb4a3' : '#e9f0ea';
+  g2.fillStyle = '#e9f0ea';
   g2.fillText(fmtTime(G.playTicks), VW / 2, y0 + hh / 2 + 1);
   if (codes) {
     g2.font = '700 14px ' + FONT;
@@ -1510,7 +1536,7 @@ function drawHud(G, extra) {
   const sub = G.cfg.subtitle ? G.cfg.subtitle : DIFF[G.cfg.diff] ? DIFF[G.cfg.diff].label + ' · ' + G.cfg.size + 'v' + G.cfg.size : '';
   const lim = G.cfg.timeLimit > 0 ? ' · ' + G.cfg.timeLimit + ':00' : '';
   const goals = G.cfg.scoreLimit > 0 ? ' · a ' + G.cfg.scoreLimit : '';
-  g2.fillText(G.overtime ? 'Prórroga · gol de oro' : sub + lim + goals, VW / 2, y0 + hh + 16);
+  g2.fillText(sub + lim + goals, VW / 2, y0 + hh + 16);
   if (extra && extra.ping != null) {
     g2.textAlign = 'left'; g2.fillStyle = extra.ping > 150 ? '#ffb4a3' : 'rgba(233,240,234,.62)';
     g2.fillText(extra.ping + ' ms', 14, 28);
@@ -1536,10 +1562,6 @@ const DT = 1000 / 60;
 let onLocalEnd = null;
 function frame(now) {
   requestAnimationFrame(frame);
-  if (mode === 'online' && hooks.onlineFrame && (state === 'playing' || state === 'paused' || state === 'ended')) {
-    hooks.onlineFrame(now);
-    return;
-  }
   if (state === 'playing' && game && (mode === 'local' || mode === 'wc')) {
     acc += Math.min(now - lastT, 100); lastT = now;
     const human = game.players.find(q => q.human);
@@ -1687,7 +1709,7 @@ function matchTab(body) {
         h('div', { class: 'side' }, kitChip(u.c, true), h('b', { text: u.n }), h('span', { text: starsText(u.c) })),
         h('div', { class: 'vsx', text: 'vs' }),
         h('div', { class: 'side' }, kitChip(o.c, true), h('b', { text: o.n }), h('span', { text: starsText(o.c) }))),
-      h('p', { class: 'meta', text: 'Rival: ' + diffLabel(d) + ' · ' + wc.size + ' vs ' + wc.size + ' · ' + wc.minutes + ' min · cancha ' + pitchText(wc.pitch) + (p.kind === 'ko' ? ' · si hay empate, gol de oro' : '') }),
+      h('p', { class: 'meta', text: 'Rival: ' + diffLabel(d) + ' · ' + wc.size + ' vs ' + wc.size + ' · ' + wc.minutes + ' min · cancha ' + pitchText(wc.pitch) + (p.kind === 'ko' ? ' · si hay empate, penales' : '') }),
       h('div', { class: 'row' },
         h('button', { class: 'btn go', type: 'button', text: 'Jugar partido', onclick: wcPlay }),
         h('button', { class: 'btn', type: 'button', text: 'Simular partido', onclick: wcSim }))));
@@ -1818,11 +1840,19 @@ function wcMatchOver(p, oppC) {
   onLocalEnd = null;
   const ug = game.score[0], og = game.score[1];
   sound('end');
-  WC.submitUser(wc, ug, og);
+  if (game.tied) {
+    /* empate en eliminación directa: se define por penales */
+    setState('ended');
+    startPenalties({ names: [WC.BY[wc.user].n, WC.BY[oppC].n], kits: game.kits, diff: WC.diffFor(wc), onDone: pen => wcMatchEnd(p, oppC, ug, og, pen) });
+  } else wcMatchEnd(p, oppC, ug, og, null);
+}
+
+function wcMatchEnd(p, oppC, ug, og, pen) {
+  WC.submitUser(wc, ug, og, pen ? pen.u : null, pen ? pen.c : null);
   saveWc();
-  const win = ug > og, draw = ug === og;
+  const win = pen ? pen.u > pen.c : ug > og, draw = !pen && ug === og;
   const u = WC.BY[wc.user], o = WC.BY[oppC];
-  let meta = p.label;
+  let meta = p.label + (pen ? ' · penales ' + pen.u + '–' + pen.c : '');
   if (wc.out) meta += ' · Quedaste eliminado';
   else if (wc.stage === 'done') meta += ' · ' + wc.exit;
   else if (p.kind === 'group' && wc.stage === 'ko') meta += ' · ¡Clasificaste!';
@@ -1847,479 +1877,150 @@ function initWc() {
   buildWcSetup();
 }
 
-/* ===== Modo online: conexión, sala (lobby) y partido ===== */
-const NET = {
-  ws: null, state: 'off', id: null, room: null, rooms: [], err: '', rtt: null,
-  name: store.get('name', '') || ('Jugador' + Math.floor(100 + Math.random() * 900)),
-  pendingJoin: null, snaps: [], renderT: null, lastFrame: 0, lastArr: 0, jit: 4, delay: 60, you: -1, pingT: null, listT: null,
-  inGame: false
-};
-let ogame = null;
-let hostCfg = { size: '2', time: '3', goals: '5', bots: '1', diff: 'normal', pitch: { preset: 'classic' } };
-let cfgCtl = null, lastCfgJson = '', lastHost = null;
-const onlineEls = {};
+/* ===== Pantalla de penales (se usa cuando un partido termina empatado) ===== */
+let pkRun = 0;
+const pkSleep = ms => new Promise(r => setTimeout(r, ms * (typeof window.PK_SCALE === 'number' ? window.PK_SCALE : 1)));   // PK_SCALE solo lo usan las pruebas
+const PK_COL = { KeyQ: 0, KeyW: 1, KeyE: 2, KeyA: 0, KeyS: 1, KeyD: 2, ArrowLeft: 0, ArrowDown: 1, ArrowRight: 2 };
+const PK_ZONE = ['Arriba a la izquierda', 'Arriba al medio', 'Arriba a la derecha', 'Abajo a la izquierda', 'Abajo al medio', 'Abajo a la derecha'];
 
-const ONLINE_GROUPS = [
-  { key: 'size', label: 'Jugadores por equipo', opts: [['1', '1 vs 1'], ['2', '2 vs 2'], ['3', '3 vs 3']] },
-  { key: 'time', label: 'Tiempo', opts: [['3', '3 min'], ['5', '5 min'], ['10', '10 min'], ['0', 'Sin límite']] },
-  { key: 'goals', label: 'Goles para ganar', opts: [['3', '3'], ['5', '5'], ['10', '10'], ['0', 'Sin límite']] },
-  { key: 'bots', label: 'Completar con bots', opts: [['1', 'Sí'], ['0', 'No']] },
-  { key: 'diff', label: 'Dificultad de los bots', opts: [['easy', 'Fácil'], ['normal', 'Normal'], ['hard', 'Difícil'], ['expert', 'Experto']] }
-];
+/* o: { names:[tú, rival], kits:[color tú, color rival], diff, onDone({u, c, first}) } */
+function startPenalties(o) {
+  const run = ++pkRun;
+  const S = PEN.create(Math.random() < 0.5 ? 'u' : 'c');
+  const hist = [];
+  const el = SCREENS.pens, c = card('pk');
+  clearEl(el); el.append(c);
 
-function toast(text) {
-  const t = $('toast');
-  t.textContent = text; t.hidden = false;
-  clearTimeout(toast.t);
-  toast.t = setTimeout(() => { t.hidden = true; }, 3500);
-}
+  const dots = { u: h('span', { class: 'pk-dots' }), c: h('span', { class: 'pk-dots' }) };
+  const nums = { u: h('em', { text: '0' }), c: h('em', { text: '0' }) };
+  const team = (k, i) => h('div', { class: 'pk-team' },
+    h('span', { class: 'pk-kit', style: 'background:' + o.kits[i] }), h('b', { text: o.names[i] }), dots[k], nums[k]);
+  const info = h('p', { class: 'pk-info' });
+  const hint = h('p', { class: 'pk-hint' });
+  const keeper = h('div', { class: 'pk-keeper' });
+  const ball = h('div', { class: 'pk-ball' });
+  const cells = h('div', { class: 'pk-cells' });
+  const flash = h('div', { class: 'pk-flash' });
+  const goal = h('div', { class: 'pk-goal' }, h('div', { class: 'pk-net' }), keeper, ball, cells, flash);
+  const foot = h('div', { class: 'pk-foot' });
+  c.append(h('h2', { text: 'Penales' }), h('div', { class: 'pk-head' }, team('u', 0), team('c', 1)), info, goal, hint, foot);
 
-/* ---------- Conexión ---------- */
-function serverUrl() {
-  try {
-    const q = new URLSearchParams(location.search).get('server');
-    if (q && /^wss?:\/\//.test(q)) return q;
-  } catch (e) { /* ok */ }
-  if (location.protocol !== 'http:' && location.protocol !== 'https:') return null;
-  return (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
-}
-
-function netConnect() {
-  if (NET.ws && (NET.state === 'on' || NET.state === 'connecting')) return;
-  const url = serverUrl();
-  if (!url) { NET.state = 'fail'; NET.err = 'Abrí la página desde el servidor del juego para jugar online.'; paintOnline(); return; }
-  NET.state = 'connecting'; NET.err = ''; paintOnline();
-  let ws;
-  try { ws = new WebSocket(url); } catch (e) { NET.state = 'fail'; NET.err = 'No se pudo abrir la conexión.'; paintOnline(); return; }
-  NET.ws = ws;
-  let opened = false;
-  const guard = setTimeout(() => { if (!opened) { try { ws.close(); } catch (e) { /* ok */ } } }, 7000);
-  ws.onopen = () => {
-    opened = true; clearTimeout(guard);
-    NET.state = 'on';
-    netSend({ t: 'hello', name: NET.name });
-    startNetTimers();
-    paintOnline();
-  };
-  ws.onmessage = ev => { let m; try { m = JSON.parse(ev.data); } catch (e) { return; } onNetMsg(m); };
-  ws.onclose = () => {
-    clearTimeout(guard); stopNetTimers();
-    const was = NET.state;
-    if (NET.ws === ws) NET.ws = null;
-    NET.state = opened ? 'off' : 'fail';
-    NET.err = opened ? 'Se perdió la conexión con el servidor.' : 'No se encontró el servidor de juego. El modo online necesita publicar el proyecto con su servidor (mirá el README).';
-    NET.room = null; NET.inGame = false;
-    if (mode === 'online' || currentScreen === 'room' || state === 'paused' || state === 'ended') {
-      setState('idle'); mode = 'none';
-      if (was === 'on') toast('Se perdió la conexión con el servidor.');
+  function paint() {
+    const [su, sc] = PEN.score(S);
+    nums.u.textContent = su; nums.c.textContent = sc;
+    for (const k of ['u', 'c']) {
+      clearEl(dots[k]);
+      for (let i = 0; i < Math.max(5, S[k].length); i++) {
+        const v = S[k][i];
+        dots[k].append(h('i', { class: v === undefined ? '' : v ? 'ok' : 'no' }));
+      }
     }
-    if (currentScreen === 'room' || currentScreen === null) showScreen('online');
-    paintOnline();
-  };
-  ws.onerror = () => { /* onclose se encarga */ };
-}
-function netClose() {
-  stopNetTimers();
-  if (NET.ws) { const w = NET.ws; NET.ws = null; try { w.close(); } catch (e) { /* ok */ } }
-  NET.state = 'off'; NET.room = null; NET.inGame = false;
-}
-function netSend(o) { if (NET.ws && NET.ws.readyState === 1) NET.ws.send(JSON.stringify(o)); }
-function startNetTimers() {
-  stopNetTimers();
-  NET.pingT = setInterval(() => netSend({ t: 'ping', c: performance.now() }), 2000);
-  NET.listT = setInterval(() => { if (currentScreen === 'online') netSend({ t: 'list' }); }, 3000);
-  netSend({ t: 'ping', c: performance.now() }); netSend({ t: 'list' });
-}
-function stopNetTimers() { clearInterval(NET.pingT); clearInterval(NET.listT); }
+  }
+  const colX = col => 16.67 + col * 33.33;
+  const rowY = row => (row === 0 ? 26 : 70);
 
-/* ---------- Mensajes ---------- */
-function onNetMsg(m) {
-  switch (m.t) {
-    case 'welcome':
-      NET.id = m.id;
-      if (NET.pendingJoin) { netSend({ t: 'join', code: NET.pendingJoin }); NET.pendingJoin = null; }
-      break;
-    case 'pong': {
-      const r = Math.round(performance.now() - m.c);
-      NET.rtt = NET.rtt == null ? r : Math.round(NET.rtt * 0.6 + r * 0.4);
-      break;
+  function resetPositions(userKeeps) {
+    for (const e of [ball, keeper]) e.style.transition = 'none';
+    ball.style.left = '50%'; ball.style.top = '138%'; ball.style.transform = 'translate(-50%,-50%)';
+    keeper.style.left = '50%'; keeper.style.transform = 'translate(-50%,0)';
+    keeper.style.background = o.kits[userKeeps ? 0 : 1];
+    flash.textContent = ''; flash.className = 'pk-flash';
+    void goal.offsetWidth;
+    for (const e of [ball, keeper]) e.style.transition = '';
+  }
+
+  /* espera a que el jugador elija; devuelve { col, row } al patear o { col } al atajar */
+  function pick(shooting) {
+    return new Promise(resolve => {
+      clearEl(cells);
+      let done = false;
+      const finish = v => {
+        if (done || run !== pkRun) return;
+        done = true; window.removeEventListener('keydown', onKey); clearEl(cells); resolve(v);
+      };
+      if (shooting) {
+        for (let r = 0; r < 2; r++) for (let col = 0; col < 3; col++) {
+          cells.append(h('button', { class: 'pk-cell', type: 'button', 'aria-label': PK_ZONE[r * 3 + col], onclick: () => finish({ col, row: r }) }));
+        }
+      } else {
+        for (let col = 0; col < 3; col++) {
+          cells.append(h('button', { class: 'pk-cell keep', type: 'button', style: 'grid-column:' + (col + 1) + ';grid-row:1/3', 'aria-label': ['Izquierda', 'Centro', 'Derecha'][col], onclick: () => finish({ col }) }));
+        }
+      }
+      function onKey(e) {
+        if (!(e.code in PK_COL)) return;
+        e.preventDefault();
+        const col = PK_COL[e.code];
+        if (!shooting) return finish({ col });
+        if (e.code.startsWith('Key')) finish({ col, row: 'QWE'.includes(e.code[3]) ? 0 : 1 });
+        else if (e.code === 'ArrowDown') finish({ col: 1, row: 1 });
+        else finish({ col, row: 1 });
+      }
+      window.addEventListener('keydown', onKey);
+    });
+  }
+
+  async function playKick(who, shot, keepCol, outcome) {
+    keeper.style.left = colX(keepCol) + '%';
+    keeper.style.transform = 'translate(-50%,0) scaleX(' + (keepCol === 1 ? 1.1 : 1.6) + ')';
+    let x = colX(shot.col), y = rowY(shot.row), sc = 0.75;
+    if (outcome === 'miss') {
+      if (shot.row === 0 && shot.col !== 1 && Math.random() < 0.5) { x = shot.col === 0 ? -10 : 110; y = 30; }
+      else y = -22;
+      sc = 0.6;
     }
-    case 'rooms': NET.rooms = m.list; paintOnline(); break;
-    case 'err': toast(m.m); NET.pendingJoin = null; break;
-    case 'room': {
-      const first = !NET.room;
-      NET.room = m;
-      if (first && !NET.inGame) { clearEl(onlineEls.chatLog); chatLine(null, 'Sala ' + m.code + ': compartí el código para que se sumen.'); }
-      if (first && !NET.inGame) showScreen('room');
-      paintRoom();
-      break;
+    sound('kick');
+    ball.style.left = x + '%'; ball.style.top = y + '%'; ball.style.transform = 'translate(-50%,-50%) scale(' + sc + ')';
+    await pkSleep(620);
+    const you = who === 'u';
+    const text = outcome === 'goal' ? '¡GOL!' : outcome === 'save' ? (you ? '¡Te la atajó!' : '¡Atajaste!') : (you ? '¡Afuera!' : '¡Se fue afuera!');
+    flash.textContent = text; flash.className = 'pk-flash ' + (outcome === 'goal' ? (you ? 'good' : 'bad') : (you ? 'bad' : 'good')) + ' on';
+    if (outcome === 'goal') sound('goal');
+  }
+
+  async function loop() {
+    paint();
+    info.textContent = (S.first === 'u' ? 'Empezás vos pateando.' : o.names[1] + ' patea primero.') + ' Cinco tiros cada uno.';
+    await pkSleep(1300);
+    while (!S.done) {
+      if (run !== pkRun) return;
+      const who = PEN.turn(S), sudden = S.u.length >= 5 && S.c.length >= 5;
+      const pre = sudden ? 'Muerte súbita. ' : '';
+      resetPositions(who === 'c');
+      let shot, keep;
+      if (who === 'u') {
+        info.textContent = pre + 'Te toca patear: elegí un rincón del arco.';
+        hint.textContent = 'Tocá la zona, o usá Q W E (arriba) y A S D (abajo).';
+        shot = await pick(true); if (run !== pkRun) return;
+        hist.push(shot.col);
+        keep = PEN.aiKeeper(Math.random, o.diff, hist.slice(0, -1));
+      } else {
+        info.textContent = pre + 'Te toca atajar: elegí hacia dónde tirarte.';
+        hint.textContent = 'Tocá un lado, o usá ← ↓ → (también A S D).';
+        keep = (await pick(false)).col; if (run !== pkRun) return;
+        shot = PEN.aiShot(Math.random, o.diff);
+      }
+      hint.textContent = '';
+      const out = PEN.resolve(shot, keep, Math.random);
+      await playKick(who, shot, keep, out);
+      PEN.record(S, who, out === 'goal');
+      paint();
+      await pkSleep(1300);
     }
-    case 'left':
-      NET.room = null; NET.inGame = false; cfgCtl = null; lastCfgJson = '';
-      setState('idle'); mode = 'none';
-      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* ok */ }
-      showScreen('online'); netSend({ t: 'list' });
-      break;
-    case 'chat': chatLine(m, null); break;
-    case 'start': onlineStart(m); break;
-    case 's': onSnap(m); break;
-    case 'end': onlineEnd(m); break;
+    if (run !== pkRun) return;
+    const [su, sc] = PEN.score(S), win = S.winner === 'u';
+    sound('end');
+    resetPositions(false);
+    info.textContent = win ? '¡Ganaste por penales!' : 'Perdiste por penales.';
+    info.classList.add('final');
+    hint.textContent = '';
+    foot.append(h('button', { class: 'btn go', type: 'button', text: 'Continuar', onclick: () => { pkRun++; o.onDone({ u: su, c: sc, first: S.first }); } }));
   }
+  showScreen('pens');
+  loop();
 }
 
-/* ---------- Pantalla "Online" ---------- */
-function buildOnline() {
-  const s = SCREENS.online, c = card();
-  clearEl(s); s.append(c);
-  c.append(topbar('Jugar online', () => { netClose(); showScreen('home'); }, 'Inicio'));
-  c.append(h('p', { class: 'sub', text: 'Creá una sala y pasale el código a tus amigos, o entrá a una sala abierta.' }));
-
-  onlineEls.name = h('input', { type: 'text', id: 'nick', maxlength: 16, value: NET.name, autocomplete: 'nickname', spellcheck: 'false', placeholder: 'Tu nombre' });
-  onlineEls.name.addEventListener('input', () => { NET.name = onlineEls.name.value.replace(/[<>]/g, '').slice(0, 16); store.set('name', NET.name); });
-  c.append(h('div', { class: 'field' }, h('label', { for: 'nick', text: 'Tu nombre' }), onlineEls.name));
-
-  onlineEls.status = h('p', { class: 'status', role: 'status' });
-  c.append(onlineEls.status);
-
-  onlineEls.createBtn = h('button', { class: 'btn go', type: 'button', text: 'Crear sala', onclick: () => {
-    NET.name = (NET.name || 'Jugador').trim() || 'Jugador';
-    netSend({ t: 'hello', name: NET.name });
-    netSend({ t: 'create', cfg: serverCfg(hostCfg) });
-  } });
-  onlineEls.code = h('input', { type: 'text', id: 'joincode', maxlength: 4, placeholder: 'CÓDIGO', autocomplete: 'off', spellcheck: 'false', class: 'code' });
-  onlineEls.code.addEventListener('input', () => { onlineEls.code.value = onlineEls.code.value.toUpperCase().replace(/[^A-Z]/g, ''); });
-  onlineEls.code.addEventListener('keydown', e => { if (e.key === 'Enter') joinByCode(); });
-  onlineEls.joinBtn = h('button', { class: 'btn', type: 'button', text: 'Entrar', onclick: joinByCode });
-  c.append(h('div', { class: 'row' }, onlineEls.createBtn, h('div', { class: 'joinbox' }, onlineEls.code, onlineEls.joinBtn)));
-
-  onlineEls.retry = h('button', { class: 'btn', type: 'button', text: 'Reintentar conexión', hidden: true, onclick: () => { NET.state = 'off'; netConnect(); } });
-  c.append(onlineEls.retry);
-
-  c.append(h('div', { class: 'listhead' }, h('h4', { text: 'Salas abiertas' }), h('button', { class: 'btn sm', type: 'button', text: 'Actualizar', onclick: () => netSend({ t: 'list' }) })));
-  onlineEls.list = h('ul', { class: 'rooms' });
-  c.append(onlineEls.list);
-  paintOnline();
-}
-
-function joinByCode() {
-  const code = onlineEls.code.value.trim().toUpperCase();
-  if (code.length !== 4) { toast('El código tiene 4 letras.'); return; }
-  netSend({ t: 'hello', name: NET.name });
-  netSend({ t: 'join', code });
-}
-
-function paintOnline() {
-  if (!onlineEls.status) return;
-  const on = NET.state === 'on';
-  const txt = { off: NET.err || 'Sin conexión.', connecting: 'Conectando con el servidor…', on: 'Conectado' + (NET.rtt != null ? ' · ' + NET.rtt + ' ms' : ''), fail: NET.err || 'Sin conexión.' }[NET.state];
-  onlineEls.status.textContent = txt;
-  onlineEls.status.className = 'status ' + (on ? 'ok' : NET.state === 'connecting' ? 'wait' : 'bad');
-  onlineEls.createBtn.disabled = !on; onlineEls.joinBtn.disabled = !on; onlineEls.code.disabled = !on;
-  onlineEls.retry.hidden = !(NET.state === 'fail' || NET.state === 'off');
-  clearEl(onlineEls.list);
-  if (!on) return;
-  if (!NET.rooms.length) onlineEls.list.append(h('li', { class: 'empty', text: 'No hay salas abiertas. Creá la primera.' }));
-  for (const r of NET.rooms) {
-    onlineEls.list.append(h('li', { class: 'roomrow' },
-      h('div', { class: 'rr-t' }, h('b', { text: r.name }), h('span', { text: r.size + 'v' + r.size + ' · ' + r.pitch + ' · ' + (r.phase === 'play' ? 'jugando' : 'esperando') })),
-      h('span', { class: 'rr-n', text: r.players + '/' + r.max }),
-      h('button', { class: 'btn sm', type: 'button', text: r.phase === 'play' ? 'Mirar' : 'Entrar', onclick: () => { netSend({ t: 'hello', name: NET.name }); netSend({ t: 'join', code: r.code }); } })));
-  }
-}
-
-function openOnline(joinCode) {
-  buildOnline();
-  showScreen('online');
-  if (joinCode) NET.pendingJoin = joinCode;
-  netConnect();
-  if (NET.state === 'on' && joinCode) { netSend({ t: 'join', code: joinCode }); NET.pendingJoin = null; }
-}
-
-/* ---------- Sala ---------- */
-function serverCfg(c) {
-  return { size: +c.size, time: +c.time, goals: +c.goals, bots: c.bots === '1', diff: c.diff, pitch: c.pitch };
-}
-function fromServerCfg(sc) {
-  hostCfg.size = String(sc.size); hostCfg.time = String(sc.time); hostCfg.goals = String(sc.goals);
-  hostCfg.bots = sc.bots ? '1' : '0'; hostCfg.diff = sc.diff; hostCfg.pitch = pitchValid(sc.pitch);
-}
-
-function buildRoom() {
-  const s = SCREENS.room, c = card('wide');
-  clearEl(s); s.append(c);
-  onlineEls.roomTitle = h('h2', { text: 'Sala' });
-  onlineEls.roomCode = h('span', { class: 'bigcode', text: '----' });
-  c.append(h('div', { class: 'topbar' },
-    h('button', { class: 'back', type: 'button', text: '‹ Salir', onclick: () => netSend({ t: 'leave' }) }),
-    onlineEls.roomTitle));
-  c.append(h('div', { class: 'invite' },
-    h('div', null, h('span', { class: 'eyebrow', text: 'Código de la sala' }), onlineEls.roomCode),
-    h('div', { class: 'row' },
-      h('button', { class: 'btn sm', type: 'button', text: 'Copiar código', onclick: e => copyText(NET.room ? NET.room.code : '', e.target) }),
-      h('button', { class: 'btn sm', type: 'button', text: 'Copiar enlace', onclick: e => copyText(location.origin + location.pathname + '#sala-' + (NET.room ? NET.room.code : ''), e.target) }))));
-  onlineEls.teams = h('div', { class: 'teamcols' });
-  c.append(onlineEls.teams);
-  onlineEls.cfgBox = h('div', { class: 'cfgbox' });
-  c.append(onlineEls.cfgBox);
-  onlineEls.startBtn = h('button', { class: 'btn go', type: 'button', text: 'Empezar partido', onclick: () => netSend({ t: 'start' }) });
-  onlineEls.waitMsg = h('p', { class: 'meta', text: 'Esperando que el anfitrión empiece el partido…' });
-  c.append(onlineEls.startBtn, onlineEls.waitMsg);
-
-  onlineEls.chatLog = h('div', { class: 'chatlog', 'aria-live': 'polite' });
-  onlineEls.chatInput = h('input', { type: 'text', id: 'chatin', maxlength: 140, placeholder: 'Escribí un mensaje y Enter', autocomplete: 'off' });
-  onlineEls.chatInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && onlineEls.chatInput.value.trim()) { netSend({ t: 'chat', text: onlineEls.chatInput.value }); onlineEls.chatInput.value = ''; }
-  });
-  c.append(h('div', { class: 'chat' }, h('h4', { text: 'Chat' }), onlineEls.chatLog, onlineEls.chatInput));
-}
-
-function copyText(text, btn) {
-  const old = btn.textContent;
-  const done = ok => { btn.textContent = ok ? '¡Copiado!' : 'Copialo a mano'; setTimeout(() => { btn.textContent = old; }, 1500); };
-  try { navigator.clipboard.writeText(text).then(() => done(true), () => done(false)); } catch (e) { done(false); }
-}
-
-function chatLine(m, sys) {
-  const log = onlineEls.chatLog;
-  if (!log) return;
-  const line = m
-    ? h('p', { class: 'cl t' + m.team }, h('b', { text: m.from + ': ' }), m.text)
-    : h('p', { class: 'cl sys', text: sys });
-  log.append(line);
-  while (log.childNodes.length > 60) log.removeChild(log.firstChild);
-  log.scrollTop = log.scrollHeight;
-}
-
-function paintRoom() {
-  const r = NET.room;
-  if (!r || !onlineEls.teams) return;
-  const isHost = r.host === r.you;
-  onlineEls.roomTitle.textContent = r.name;
-  onlineEls.roomCode.textContent = r.code;
-  try { history.replaceState(null, '', location.pathname + location.search + '#sala-' + r.code); } catch (e) { /* ok */ }
-
-  /* equipos */
-  clearEl(onlineEls.teams);
-  const cap = r.cfg.size;
-  const defs = [[0, 'Rojo', 'red'], [1, 'Azul', 'blue'], [2, 'Espectadores', 'spec']];
-  const me = r.members.find(m => m.id === r.you);
-  for (const [t, label, tone] of defs) {
-    const list = r.members.filter(m => m.team === t);
-    const full = t !== 2 && list.length >= cap;
-    onlineEls.teams.append(h('div', { class: 'tcol ' + tone },
-      h('h4', null, label, h('small', { text: t === 2 ? String(list.length) : list.length + '/' + cap })),
-      h('ul', null, list.map(m => h('li', { class: m.id === r.you ? 'me' : '' }, m.name, m.id === r.host ? h('em', { text: ' anfitrión' }) : null, m.id === r.you ? h('em', { text: ' vos' }) : null)), !list.length ? h('li', { class: 'empty', text: 'Vacío' }) : null),
-      h('button', { class: 'btn sm', type: 'button', disabled: full || (me && me.team === t), text: me && me.team === t ? 'Estás acá' : full ? 'Completo' : t === 2 ? 'Mirar' : 'Unirme', onclick: () => netSend({ t: 'team', team: t }) })));
-  }
-
-  /* configuración */
-  const json = JSON.stringify(r.cfg);
-  if (isHost) {
-    if (!cfgCtl || lastHost !== true) {
-      clearEl(onlineEls.cfgBox);
-      fromServerCfg(r.cfg);
-      const send = () => netSend({ t: 'cfg', cfg: serverCfg(hostCfg) });
-      const grid = h('div', { class: 'groups' });
-      cfgCtl = { groups: [], pitch: null };
-      for (const def of ONLINE_GROUPS) { const g = segGroup('on', def, hostCfg, send); cfgCtl.groups.push(g); grid.append(g); }
-      cfgCtl.pitch = pitchGroup('on', () => hostCfg.pitch, v => { hostCfg.pitch = v; send(); });
-      grid.append(cfgCtl.pitch);
-      onlineEls.cfgBox.append(h('h4', { text: 'Configuración (la ves vos, anfitrión)' }), grid);
-      lastCfgJson = json;
-    } else if (json !== lastCfgJson) {
-      fromServerCfg(r.cfg);
-      for (const g of cfgCtl.groups) g.refresh();
-      cfgCtl.pitch.update(hostCfg.pitch);
-      lastCfgJson = json;
-    }
-  } else {
-    cfgCtl = null; lastCfgJson = '';
-    clearEl(onlineEls.cfgBox);
-    const c = r.cfg;
-    onlineEls.cfgBox.append(h('p', { class: 'summary' },
-      c.size + ' vs ' + c.size + ' · cancha ' + pitchText(c.pitch) + ' · ' + (c.time ? c.time + ' min' : 'sin límite de tiempo') + ' · ' + (c.goals ? 'a ' + c.goals + ' goles' : 'sin límite de goles') + ' · ' + (c.bots ? 'bots ' + diffLabel(c.diff).toLowerCase() + ' completan' : 'sin bots')));
-  }
-  lastHost = isHost;
-  onlineEls.startBtn.hidden = !isHost; onlineEls.startBtn.textContent = r.phase === 'play' ? 'Partido en curso' : 'Empezar partido';
-  onlineEls.startBtn.disabled = r.phase === 'play';
-  onlineEls.waitMsg.hidden = isHost;
-}
-
-/* ---------- Partido online ---------- */
-/* Mi jugador se mueve al instante con la misma física que el servidor (predicción).
-   Cuando llega el estado del servidor, se vuelve a calcular desde ahí con las entradas que
-   el servidor todavía no procesó, y la diferencia se corrige de a poco para que no salte. */
-const PR = { x: 0, y: 0, vx: 0, vy: 0, ox: 0, oy: 0, seq: 0, buf: [], init: false, acc: 0, errMax: 0 };
-const PSTRIDE = 6;
-
-function onlineStart(m) {
-  NET.inGame = true; NET.you = m.you; NET.snaps = []; NET.renderT = null; NET.lastArr = 0; NET.jit = 4; NET.delay = 60;
-  PR.init = false; PR.buf = []; PR.ox = PR.oy = 0; PR.acc = 0;
-  const cfg = m.cfg;
-  ogame = createGame({
-    size: cfg.size, diff: cfg.diff, humanTeam: -1, timeLimit: cfg.timeLimit, scoreLimit: cfg.scoreLimit, pitch: cfg.pitch,
-    roster: m.roster.map(r => ({ team: r.team, human: false, name: r.name }))
-  });
-  ogame.cfg.subtitle = 'Online · ' + cfg.size + 'v' + cfg.size;
-  if (m.you >= 0 && ogame.players[m.you]) {
-    const me = ogame.players[m.you];
-    me.me = true;
-    PR.r = me.r; PR.invMass = me.invMass; PR.bCoef = me.bCoef; PR.team = me.team;
-  }
-  view = ogame; mode = 'online';
-  loadFonts(); unlockAudio();
-  pauseOpts = () => {
-    const r = NET.room, isHost = r && r.host === r.you, mine = r && r.members.find(x => x.id === r.you);
-    const list = [];
-    if (mine && mine.team !== 2) list.push({ text: 'Pasarme a espectador', fn: () => { netSend({ t: 'team', team: 2 }); resumeGame(); } });
-    if (isHost) list.push({ text: 'Terminar el partido', fn: () => { netSend({ t: 'stop' }); } });
-    list.push({ text: 'Salir de la sala', fn: () => netSend({ t: 'leave' }) });
-    return list;
-  };
-  setState('playing');
-}
-
-function onSnap(m) {
-  if (!ogame) return;
-  const now = performance.now();
-  if (NET.lastArr) {
-    /* qué tan irregular llega el flujo: define cuánto retardo hace falta para verse fluido */
-    const gap = now - NET.lastArr;
-    NET.jit = NET.jit * 0.95 + Math.abs(gap - DT) * 0.05;
-    NET.delay = clampN(DT * 2 + NET.jit * 3, 50, 180);
-  }
-  NET.lastArr = now;
-  const T = m.k * DT;
-  NET.snaps.push({ T, m });
-  if (NET.snaps.length > 60) NET.snaps.shift();
-  ogame.score = m.sc; ogame.phase = m.f === 'p' ? 'play' : m.f === 'g' ? 'goal' : 'kickoff';
-  ogame.playTicks = m.m; ogame.overtime = !!m.o; ogame.tick = m.k;
-  if (m.e) for (const e of m.e) {
-    sound(e);
-    if (e === 'overtime') ogame.banner = { text: 'Prórroga', sub: 'El próximo gol gana', team: -1, t: 150 };
-  }
-  if (m.bn) { ogame.banner = { text: '¡GOL!', team: m.bn[0], sub: m.bn[1], t: 150 }; ogame.kickTeam = 1 - m.bn[0]; }
-  reconcile(m);
-}
-
-/* Los otros jugadores como discos fijos (posiciones de un snapshot, o las que se ven si no se pasa ninguno) */
-function solids(arr) {
-  const out = [];
-  ogame.players.forEach((p, i) => {
-    if (i === NET.you) return;
-    const j = i * PSTRIDE;
-    out.push({ x: arr ? arr[j] : p.x, y: arr ? arr[j + 1] : p.y, vx: 0, vy: 0, r: p.r, invMass: p.invMass, bCoef: p.bCoef });
-  });
-  return out;
-}
-
-/* Parte del estado confirmado por el servidor y vuelve a aplicar mis entradas pendientes */
-function reconcile(m) {
-  if (NET.you < 0 || !ogame.players[NET.you]) return;
-  const j = NET.you * PSTRIDE, me = ogame.players[NET.you];
-  const S = { x: m.p[j], y: m.p[j + 1], vx: m.p[j + 3], vy: m.p[j + 4], r: me.r, invMass: me.invMass, bCoef: me.bCoef, team: me.team };
-  const ack = m.p[j + 5];
-  while (PR.buf.length && PR.buf[0].s <= ack) PR.buf.shift();
-  const oth = solids(m.p);
-  for (const inp of PR.buf) predictPlayer(ogame, S, inp, oth);
-  if (!PR.init) { PR.init = true; PR.ox = PR.oy = 0; }
-  else {
-    const ex = PR.x + PR.ox - S.x, ey = PR.y + PR.oy - S.y;
-    if (Math.hypot(ex, ey) > 60) { PR.ox = PR.oy = 0; }      // salto grande (saque, gol): sin suavizar
-    else { PR.ox = ex; PR.oy = ey; }                          // lo que se ve no se mueve; el desvío se va apagando
-    PR.errMax = Math.max(PR.errMax, Math.hypot(PR.x - S.x, PR.y - S.y));
-  }
-  PR.x = S.x; PR.y = S.y; PR.vx = S.vx; PR.vy = S.vy;
-}
-
-/* Un tick local: leer controles, moverme ya, y avisar al servidor */
-function localTick() {
-  const i = state === 'playing' ? readInput() : { dx: 0, dy: 0, kick: false };
-  const inp = { dx: Math.round(i.dx * 100) / 100, dy: Math.round(i.dy * 100) / 100, kick: !!i.kick, s: ++PR.seq };
-  PR.buf.push(inp);
-  if (PR.buf.length > 600) PR.buf.shift();
-  if (PR.init) predictPlayer(ogame, PR, inp, solids());
-  PR.ox *= 0.88; PR.oy *= 0.88;
-  netSend({ t: 'in', dx: inp.dx, dy: inp.dy, kick: inp.kick, s: inp.s });
-  const me = ogame.players[NET.you];
-  if (me) { me.in.kick = inp.kick; me.armed = true; }
-}
-
-function applySnap(a, b, f) {
-  const G = ogame, pa = a.m.p, pb = b.m.p;
-  G.ball.x = G.ball.px = a.m.b[0] + (b.m.b[0] - a.m.b[0]) * f;
-  G.ball.y = G.ball.py = a.m.b[1] + (b.m.b[1] - a.m.b[1]) * f;
-  for (let i = 0; i < G.players.length; i++) {
-    const p = G.players[i], j = i * PSTRIDE;
-    if (pa[j] === undefined) continue;
-    /* un salto grande es un saque tras gol: no interpolar */
-    const dx = pb[j] - pa[j], dy = pb[j + 1] - pa[j + 1];
-    const k = (Math.abs(dx) > 120 || Math.abs(dy) > 120) ? 1 : f;
-    p.x = p.px = pa[j] + dx * k; p.y = p.py = pa[j + 1] + dy * k;
-    p.flash = pb[j + 2] ? 1 : 0;
-    if (i !== NET.you) p.in.kick = false;
-  }
-  const bdx = b.m.b[0] - a.m.b[0], bdy = b.m.b[1] - a.m.b[1];
-  if (Math.abs(bdx) > 120 || Math.abs(bdy) > 120) { G.ball.x = G.ball.px = b.m.b[0]; G.ball.y = G.ball.py = b.m.b[1]; }
-}
-
-function onlineFrame(now) {
-  const dtf = Math.min(now - (NET.lastFrame || now), 50); NET.lastFrame = now;
-  const snaps = NET.snaps;
-  if (ogame && snaps.length) {
-    const latest = snaps[snaps.length - 1].T;
-    if (NET.renderT == null) NET.renderT = latest - NET.delay;
-    else {
-      NET.renderT += dtf;
-      const err = (latest - NET.delay) - NET.renderT;
-      NET.renderT += clampN(err * 0.08, -dtf * 0.5, dtf);
-    }
-    const rt = NET.renderT;
-    let a = snaps[0], b = snaps[0];
-    for (let i = snaps.length - 1; i >= 0; i--) {
-      if (snaps[i].T <= rt) { a = snaps[i]; b = snaps[Math.min(i + 1, snaps.length - 1)]; break; }
-      a = snaps[i]; b = snaps[i];
-    }
-    const span = b.T - a.T, f = span > 0 ? clampN((rt - a.T) / span, 0, 1) : 1;
-    applySnap(a, b, f);
-
-    /* mi jugador: tantos ticks locales como corresponda (60 por segundo) */
-    if (NET.you >= 0) {
-      PR.acc += dtf;
-      let guard = 0;
-      while (PR.acc >= DT && guard++ < 6) { PR.acc -= DT; localTick(); }
-      if (PR.acc > DT * 6) PR.acc = 0;
-      const me = ogame.players[NET.you];
-      if (me && PR.init) { me.x = me.px = PR.x + PR.ox; me.y = me.py = PR.y + PR.oy; }
-    }
-    if (ogame.banner && ogame.banner.t > 0) ogame.banner.t -= dtf / DT;
-  }
-  if (state === 'playing' || state === 'paused' || state === 'ended') drawGame(ogame, 1, { online: true, ping: NET.rtt });
-}
-
-function onlineEnd(m) {
-  NET.inGame = false;
-  if (state === 'idle') return;
-  const r = NET.room, me = r && r.members.find(x => x.id === r.you);
-  const team = me ? me.team : 2;
-  let title, res = 'draw';
-  if (m.w === -2) title = 'El anfitrión terminó el partido';
-  else if (m.w === -1) title = 'Empate';
-  else if (team === 2) title = 'Ganó ' + (m.w === 0 ? 'Rojo' : 'Azul');
-  else { const win = m.w === team; title = win ? '¡Ganaste!' : 'Perdiste'; res = win ? 'win' : 'lose'; }
-  sound('end');
-  view = ogame;
-  showEnd({
-    title, res, score: m.w === -2 ? null : m.sc, meta: m.o ? 'Definido en prórroga' : '',
-    buttons: [{ text: 'Volver a la sala', go: true, fn: () => { setState('idle'); mode = 'none'; showScreen('room'); paintRoom(); } }]
-  });
-}
-
-function initOnline() {
-  mkScreen('online'); mkScreen('room');
-  buildRoom();
-  hooks.onlineFrame = onlineFrame;
-}
+function initPens() { mkScreen('pens'); }
 
 /* ===== Inicio, partido contra la máquina y arranque ===== */
 const LOCAL = Object.assign({ size: '1', diff: 'normal', side: '0', time: '3', goals: '3', pitch: { preset: 'classic' } }, store.get('local', {}));
@@ -2362,23 +2063,29 @@ function startLocal() {
 function localOver() {
   onLocalEnd = null;
   sound('end');
-  const win = game.winner, me = game.humanTeam;
-  showEnd({
-    title: win < 0 ? 'Empate' : (win === me ? '¡Ganaste!' : 'Perdiste'), res: win < 0 ? 'draw' : (win === me ? 'win' : 'lose'),
-    score: game.score, colors: KIT_DEFAULT,
-    meta: DIFF[LOCAL.diff].label + ' · ' + LOCAL.size + ' vs ' + LOCAL.size + ' · cancha ' + pitchText(LOCAL.pitch) + (game.overtime ? ' · definido en prórroga' : ''),
-    buttons: [
-      { text: 'Revancha', go: true, fn: startLocal },
-      { text: 'Cambiar opciones', fn: () => { setState('idle'); showScreen('local'); } },
-      { text: 'Inicio', fn: () => { setState('idle'); showScreen('home'); } }
-    ]
-  });
+  const me = game.humanTeam, other = 1 - me;
+  const done = pen => {
+    const win = pen ? (pen.u > pen.c ? me : other) : game.winner;
+    showEnd({
+      title: win < 0 ? 'Empate' : (win === me ? '¡Ganaste!' : 'Perdiste'), res: win < 0 ? 'draw' : (win === me ? 'win' : 'lose'),
+      score: game.score, colors: KIT_DEFAULT,
+      meta: DIFF[LOCAL.diff].label + ' · ' + LOCAL.size + ' vs ' + LOCAL.size + ' · cancha ' + pitchText(LOCAL.pitch) + (pen ? ' · penales ' + pen.u + '–' + pen.c : ''),
+      buttons: [
+        { text: 'Revancha', go: true, fn: startLocal },
+        { text: 'Cambiar opciones', fn: () => { setState('idle'); showScreen('local'); } },
+        { text: 'Inicio', fn: () => { setState('idle'); showScreen('home'); } }
+      ]
+    });
+  };
+  if (game.tied) {
+    setState('ended');
+    startPenalties({ names: ['Vos', 'La máquina'], kits: [KIT_DEFAULT[me], KIT_DEFAULT[other]], diff: LOCAL.diff, onDone: done });
+  } else done(null);
 }
 
 /* ---------- Pantallas ---------- */
 const ICONS = {
   bot: '<svg viewBox="0 0 64 40" aria-hidden="true"><circle cx="14" cy="20" r="11" fill="#e56e56" stroke="#101412" stroke-width="3"/><circle cx="50" cy="20" r="11" fill="#5689e5" stroke="#101412" stroke-width="3"/><circle cx="32" cy="20" r="5" fill="#fff" stroke="#101412" stroke-width="2.5"/></svg>',
-  online: '<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M20 20h24" stroke="#c7e6bd" stroke-width="3" stroke-dasharray="3 5" stroke-linecap="round"/><circle cx="12" cy="20" r="9" fill="#e56e56" stroke="#101412" stroke-width="3"/><circle cx="52" cy="20" r="9" fill="#5689e5" stroke="#101412" stroke-width="3"/><path d="M26 11a9 9 0 0 1 12 0M22 6a15 15 0 0 1 20 0" fill="none" stroke="#c7e6bd" stroke-width="2.5" stroke-linecap="round"/></svg>',
   cup: '<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M22 4h20v10c0 8-4 12-10 12s-10-4-10-12z" fill="#e8c14a" stroke="#101412" stroke-width="3" stroke-linejoin="round"/><path d="M22 7h-8c0 8 3 11 8 12M42 7h8c0 8-3 11-8 12" fill="none" stroke="#e8c14a" stroke-width="3" stroke-linecap="round"/><path d="M32 26v6M24 36h16" stroke="#e8c14a" stroke-width="4" stroke-linecap="round"/></svg>'
 };
 
@@ -2396,7 +2103,6 @@ function buildHome() {
   c.append(h('div', { class: 'brand' }, logo, h('div', null, h('h1', { text: 'Fútbol de Discos' }), h('p', { class: 'sub', text: 'Elegí cómo querés jugar.' }))));
   c.append(h('div', { class: 'modes' },
     modeCard(ICONS.bot, 'Contra la máquina', '1v1, 2v2 o 3v3 con cuatro dificultades y cancha a medida.', () => { buildLocal(); showScreen('local'); }),
-    modeCard(ICONS.online, 'Online', 'Salas con código para jugar con amigos, con bots que completan.', () => openOnline()),
     modeCard(ICONS.cup, 'Mundial', 'Elegí un país, jugá grupos y llaves hasta la final.', () => { buildWcSetup(); showScreen('wcsetup'); })));
   c.append(h('details', { class: 'keys' },
     h('summary', { text: 'Controles' }),
@@ -2424,15 +2130,10 @@ function init() {
   mkScreen('pause', 'overlay').append(card('small'));
   mkScreen('end', 'overlay').append(card('small'));
   initWc();
-  initOnline();
+  initPens();
   buildHome();
   startLoop();
-  let joined = false;
-  try {
-    const m = /^#sala-([A-Za-z]{4})$/.exec(location.hash);
-    if (m) { joined = true; openOnline(m[1].toUpperCase()); }
-  } catch (e) { /* ok */ }
-  if (!joined) showScreen('home');
+  showScreen('home');
 }
 init();
 

@@ -262,7 +262,7 @@ const WC = (() => {
     }
   }
 
-  function submitUser(st, userGoals, oppGoals) {
+  function submitUser(st, userGoals, oppGoals, userPens, oppPens) {
     const p = pending(st);
     if (!p) return;
     const userIsA = p.a === st.user;
@@ -273,7 +273,10 @@ const WC = (() => {
       const m = st.ko.rounds[st.ko.cur].matches[p.mi];
       m.ga = ga; m.gb = gb;
       if (ga !== gb) m.w = ga > gb ? m.a : m.b;
-      else { const r = simKo(m.a, m.b); m.pen = r.pen; m.w = r.w; }
+      else if (userPens != null && oppPens != null && userPens !== oppPens) {
+        m.pen = userIsA ? [userPens, oppPens] : [oppPens, userPens];
+        m.w = userPens > oppPens ? st.user : (userIsA ? m.b : m.a);
+      } else { const r = simKo(m.a, m.b); m.pen = r.pen; m.w = r.w; }
     }
     st.step++;
     advance(st);

@@ -161,13 +161,12 @@ const cv = $('cv'), g2 = cv.getContext('2d');
 let dpr = 1, VW = 0, VH = 0;
 let game = null;          // partida local (contra la máquina o Mundial)
 let view = null;          // lo que se está dibujando
-let mode = 'none';        // 'local' | 'wc' | 'online'
+let mode = 'none';        // 'local' | 'wc'
 let state = 'idle';       // 'idle' | 'playing' | 'paused' | 'ended'
 let acc = 0, lastT = 0;
 const keys = {};
 const tin = { dx: 0, dy: 0, kick: false, active: false };
 const isTouch = (window.matchMedia && matchMedia('(pointer: coarse)').matches) || 'ontouchstart' in window;
-const hooks = { onlineFrame: null, onlineInput: null, onPauseKey: null };
 
 function resize() {
   dpr = Math.min(window.devicePixelRatio || 1, 2.5);
@@ -178,7 +177,7 @@ window.addEventListener('resize', resize);
 
 function setState(s) {
   state = s;
-  $('pauseBtn').hidden = !(s === 'playing' || (s === 'paused' && mode === 'online'));
+  $('pauseBtn').hidden = s !== 'playing';
   $('touch').hidden = !((s === 'playing') && isTouch);
   if (s === 'playing') showScreen(null);
   else if (s === 'paused') showScreen('pause');
@@ -209,7 +208,7 @@ window.addEventListener('keyup', e => {
   else if (KICK[e.code]) keys.k = false;
 });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
-document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'playing' && mode !== 'online') pauseGame(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'playing') pauseGame(); });
 
 let stickId = null, kickId = null, sx0 = 0, sy0 = 0;
 const base = $('stickBase'), knob = $('stickKnob'), kickBtn = $('kickBtn');
@@ -299,7 +298,7 @@ function resumeGame() {
 function buildPause() {
   const c = SCREENS.pause.firstChild;
   clearEl(c);
-  c.append(h('h2', { text: mode === 'online' ? 'Menú' : 'Pausa' }));
+  c.append(h('h2', { text: 'Pausa' }));
   const st = h('div', { class: 'stack' });
   st.append(h('button', { class: 'btn go', type: 'button', text: 'Seguir jugando', onclick: resumeGame }));
   for (const b of (pauseOpts ? pauseOpts() : [])) st.append(h('button', { class: 'btn', type: 'button', text: b.text, onclick: b.fn }));
@@ -414,7 +413,7 @@ function drawGame(G, alpha, extra) {
   if (VH > VW * 1.2) {
     g2.fillStyle = 'rgba(233,240,234,.8)'; g2.font = '600 14px ' + BODY; g2.textAlign = 'center';
     g2.fillText('Girá el dispositivo para jugar en horizontal', VW / 2, VH - 24);
-  } else if (!isTouch && G.phase === 'kickoff' && G.tick < 300 && !(extra && extra.online)) {
+  } else if (!isTouch && G.phase === 'kickoff' && G.tick < 300) {
     g2.fillStyle = 'rgba(233,240,234,.7)'; g2.font = '500 14px ' + BODY; g2.textAlign = 'center';
     g2.fillText('Mover: WASD o flechas   ·   Patear: X o Espacio   ·   Pausa: P', VW / 2, VH - 18);
   }
@@ -429,7 +428,7 @@ function drawHud(G, extra) {
   g2.fillStyle = kitOf(G, 0); g2.fillText(String(G.score[0]), x0 + 28, y0 + hh / 2 + 1);
   g2.fillStyle = kitOf(G, 1); g2.fillText(String(G.score[1]), x0 + w - 28, y0 + hh / 2 + 1);
   g2.font = '600 20px ' + FONT;
-  g2.fillStyle = G.overtime ? '#ffb4a3' : '#e9f0ea';
+  g2.fillStyle = '#e9f0ea';
   g2.fillText(fmtTime(G.playTicks), VW / 2, y0 + hh / 2 + 1);
   if (codes) {
     g2.font = '700 14px ' + FONT;
@@ -440,7 +439,7 @@ function drawHud(G, extra) {
   const sub = G.cfg.subtitle ? G.cfg.subtitle : DIFF[G.cfg.diff] ? DIFF[G.cfg.diff].label + ' · ' + G.cfg.size + 'v' + G.cfg.size : '';
   const lim = G.cfg.timeLimit > 0 ? ' · ' + G.cfg.timeLimit + ':00' : '';
   const goals = G.cfg.scoreLimit > 0 ? ' · a ' + G.cfg.scoreLimit : '';
-  g2.fillText(G.overtime ? 'Prórroga · gol de oro' : sub + lim + goals, VW / 2, y0 + hh + 16);
+  g2.fillText(sub + lim + goals, VW / 2, y0 + hh + 16);
   if (extra && extra.ping != null) {
     g2.textAlign = 'left'; g2.fillStyle = extra.ping > 150 ? '#ffb4a3' : 'rgba(233,240,234,.62)';
     g2.fillText(extra.ping + ' ms', 14, 28);
@@ -466,10 +465,6 @@ const DT = 1000 / 60;
 let onLocalEnd = null;
 function frame(now) {
   requestAnimationFrame(frame);
-  if (mode === 'online' && hooks.onlineFrame && (state === 'playing' || state === 'paused' || state === 'ended')) {
-    hooks.onlineFrame(now);
-    return;
-  }
   if (state === 'playing' && game && (mode === 'local' || mode === 'wc')) {
     acc += Math.min(now - lastT, 100); lastT = now;
     const human = game.players.find(q => q.human);

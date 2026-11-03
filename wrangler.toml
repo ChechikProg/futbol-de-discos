@@ -1,18 +1,15 @@
 name = "futbol-de-discos"
-main = "worker/index.js"
 compatibility_date = "2025-06-01"
 
-# La página (carpeta public/) la sirve Cloudflare; el Worker atiende solo /ws y /healthz
+# Sitio estático: Cloudflare sirve la carpeta public/ (el juego corre entero en el navegador)
 [assets]
 directory = "./public"
-binding = "ASSETS"
-run_worker_first = ["/ws", "/healthz"]
 
-[[durable_objects.bindings]]
-name = "HUB"
-class_name = "Hub"
-
-# El plan gratis solo permite Durable Objects con almacenamiento SQLite
+# Borra el servidor de salas online que existía antes (ya no se usa)
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Hub"]
+
+[[migrations]]
+tag = "v2"
+deleted_classes = ["Hub"]

@@ -46,7 +46,7 @@ const errors = [];
   await page.click('#end .btn >> text=Inicio');
 
   // --- Mundial ---
-  await page.click('.mode >> nth=2');
+  await page.click('.mode >> nth=1');
   await page.waitForSelector('text=Elegir mi selección');
   await page.click('label[for="wc-diff-prog"]');
   await page.screenshot({ path: OUT + '/07-wc-setup.png' });
@@ -90,7 +90,7 @@ const errors = [];
   // recargar: el torneo se conserva
   await page.reload();
   await page.waitForSelector('.mode');
-  await page.click('.mode >> nth=2');
+  await page.click('.mode >> nth=1');
   await page.waitForSelector('.resume');
   await page.screenshot({ path: OUT + '/15-wc-resume.png' });
   await page.click('.resume >> text=Continuar');

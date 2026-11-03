@@ -1,20 +1,16 @@
 {
   "name": "futbol-de-discos",
   "version": "1.0.0",
-  "description": "Fútbol de discos al estilo HaxBall: contra la máquina, online y modo Mundial.",
+  "description": "Fútbol de discos al estilo HaxBall: contra la máquina y Mundial, todo en el navegador",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "build": "node build.js",
-    "test": "node test/wc.js && node test/server.js",
-    "cf:dev": "npx wrangler@4 dev --local --port 8790",
-    "cf:deploy": "node build.js && npx wrangler@4 deploy"
+    "test": "node test/wc.js && node test/pens.js"
   },
   "engines": {
     "node": ">=18"
   },
-  "dependencies": {
-    "ws": "^8.18.0"
-  },
+  "dependencies": {},
   "license": "MIT"
 }

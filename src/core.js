@@ -71,7 +71,7 @@ function createGame(cfg) {
   const G = {
     cfg, geo, kits: cfg.kits || null, players: [], ball: mkDisc(0, 0, C.ballR, 1, C.bBC), posts: [], nTeam: [0, 0],
     score: [0, 0], tick: 0, playTicks: 0, phase: 'kickoff', kickTeam: 0,
-    goalTimer: 0, lastGoalTeam: -1, lastTouch: null, overtime: false, over: false,
+    goalTimer: 0, lastGoalTeam: -1, lastTouch: null, tied: false, over: false,
     winner: -1, pendingEnd: false, banner: null, events: [], humanTeam: cfg.humanTeam
   };
   for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
@@ -183,22 +183,6 @@ function kickoffLimit(G, p) {
   }
 }
 
-/* Un tick de un jugador humano solo contra las paredes y los postes (sin pelota; los otros jugadores entran como discos fijos).
-   El cliente lo usa para mover a su propio jugador sin esperar al servidor. */
-function predictPlayer(G, S, inp, others) {
-  let dx = inp.dx, dy = inp.dy;
-  const m = Math.hypot(dx, dy);
-  if (m > 1) { dx /= m; dy /= m; }
-  const a = inp.kick ? C.kickAcc : C.acc;
-  S.vx += dx * a; S.vy += dy * a;
-  S.x += S.vx; S.y += S.vy;
-  if (others) for (const o of others) discDisc(o, S);   // los demás jugadores cuentan como sólidos
-  for (const post of G.posts) discDisc(post, S);
-  clampPlayerBox(G.geo, S);
-  if (G.phase === 'kickoff') kickoffLimit(G, S);
-  S.vx *= C.pDamp; S.vy *= C.pDamp;
-}
-
 function step(G) {
   if (G.over) return;
   G.tick++;
@@ -251,14 +235,10 @@ function step(G) {
     G.playTicks++;
     if (ball.x < -geo.W) goal(G, 1);
     else if (ball.x > geo.W) goal(G, 0);
-    else if (G.cfg.timeLimit > 0 && !G.overtime && G.playTicks >= G.cfg.timeLimit * 3600) {
-      if (G.score[0] !== G.score[1]) finish(G);
-      else if (G.cfg.allowDraw) finish(G);
-      else {
-        G.overtime = true;
-        G.banner = { text: 'Prórroga', sub: 'El próximo gol gana', team: -1, t: 150 };
-        ev(G, 'overtime');
-      }
+    else if (G.cfg.timeLimit > 0 && G.playTicks >= G.cfg.timeLimit * 3600) {
+      /* empate al terminar el tiempo: en los partidos que no admiten empate se define por penales (lo resuelve la interfaz) */
+      G.tied = G.score[0] === G.score[1] && !G.cfg.allowDraw;
+      finish(G);
     }
   } else if (G.phase === 'goal') {
     G.goalTimer--;
@@ -283,7 +263,7 @@ function goal(G, team) {
     t: C.goalTicks
   };
   const lim = G.cfg.scoreLimit;
-  G.pendingEnd = (lim > 0 && G.score[team] >= lim) || G.overtime;
+  G.pendingEnd = lim > 0 && G.score[team] >= lim;
   ev(G, 'goal');
 }
 
@@ -451,4 +431,4 @@ function aiDecide(G, p) {
   }
 }
 
-if (typeof module !== 'undefined') module.exports = { predictCross, predictPlayer, C, PITCHES, PITCH_LIMITS, DIFF, makeGeo, createGame, step };
+if (typeof module !== 'undefined') module.exports = { predictCross, C, PITCHES, PITCH_LIMITS, DIFF, makeGeo, createGame, step };

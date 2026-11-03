@@ -124,7 +124,7 @@ function matchTab(body) {
         h('div', { class: 'side' }, kitChip(u.c, true), h('b', { text: u.n }), h('span', { text: starsText(u.c) })),
         h('div', { class: 'vsx', text: 'vs' }),
         h('div', { class: 'side' }, kitChip(o.c, true), h('b', { text: o.n }), h('span', { text: starsText(o.c) }))),
-      h('p', { class: 'meta', text: 'Rival: ' + diffLabel(d) + ' · ' + wc.size + ' vs ' + wc.size + ' · ' + wc.minutes + ' min · cancha ' + pitchText(wc.pitch) + (p.kind === 'ko' ? ' · si hay empate, gol de oro' : '') }),
+      h('p', { class: 'meta', text: 'Rival: ' + diffLabel(d) + ' · ' + wc.size + ' vs ' + wc.size + ' · ' + wc.minutes + ' min · cancha ' + pitchText(wc.pitch) + (p.kind === 'ko' ? ' · si hay empate, penales' : '') }),
       h('div', { class: 'row' },
         h('button', { class: 'btn go', type: 'button', text: 'Jugar partido', onclick: wcPlay }),
         h('button', { class: 'btn', type: 'button', text: 'Simular partido', onclick: wcSim }))));
@@ -255,11 +255,19 @@ function wcMatchOver(p, oppC) {
   onLocalEnd = null;
   const ug = game.score[0], og = game.score[1];
   sound('end');
-  WC.submitUser(wc, ug, og);
+  if (game.tied) {
+    /* empate en eliminación directa: se define por penales */
+    setState('ended');
+    startPenalties({ names: [WC.BY[wc.user].n, WC.BY[oppC].n], kits: game.kits, diff: WC.diffFor(wc), onDone: pen => wcMatchEnd(p, oppC, ug, og, pen) });
+  } else wcMatchEnd(p, oppC, ug, og, null);
+}
+
+function wcMatchEnd(p, oppC, ug, og, pen) {
+  WC.submitUser(wc, ug, og, pen ? pen.u : null, pen ? pen.c : null);
   saveWc();
-  const win = ug > og, draw = ug === og;
+  const win = pen ? pen.u > pen.c : ug > og, draw = !pen && ug === og;
   const u = WC.BY[wc.user], o = WC.BY[oppC];
-  let meta = p.label;
+  let meta = p.label + (pen ? ' · penales ' + pen.u + '–' + pen.c : '');
   if (wc.out) meta += ' · Quedaste eliminado';
   else if (wc.stage === 'done') meta += ' · ' + wc.exit;
   else if (p.kind === 'group' && wc.stage === 'ko') meta += ' · ¡Clasificaste!';

@@ -1,12 +1,12 @@
 'use strict';
 /* Arma el cliente: junta el motor, el Mundial y la interfaz en un solo HTML.
    public/index.html  -> página completa para el servidor
-   dist/artifact.html -> versión sin <html>/<head> para publicar como artifact (sin online) */
+   dist/artifact.html -> versión sin <html>/<head> para publicar como artifact */
 const fs = require('fs');
 const path = require('path');
 const src = f => fs.readFileSync(path.join(__dirname, 'src', f), 'utf8');
 
-const files = ['core.js', 'wc.js', 'ui_base.js', 'ui_wc.js', 'ui_online.js', 'ui_main.js'];
+const files = ['core.js', 'wc.js', 'pens.js', 'ui_base.js', 'ui_wc.js', 'ui_pens.js', 'ui_main.js'];
 let js = files.map(f => src(f).replace(/^'use strict';\n/, '')).join('\n');
 js = "'use strict';\n" + js;
 /* "</script" dentro del JS cortaría la etiqueta */
