@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: futbol-de-discos
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
