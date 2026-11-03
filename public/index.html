@@ -1032,9 +1032,10 @@ const PEN = (() => {
   const K = typeof module !== 'undefined' ? require('./core.js') : { createGame, step, predictCross, C, DIFF };
   const SPOT = 220;          // distancia del punto penal a la línea de gol
   const RUN = 165;           // cuánto detrás de la pelota arranca el que patea (afuera de la medialuna)
+  const BOOST = 1.25;        // el tiro sale un poco más rápido que uno común
   const AIM_TICKS = 600;     // tiempo para patear (10 s)
   const KEEPER = { acc: 2.2, damp: 0.9, x0: 24, x1: 24, edge: 14 };   // arquero clavado en la línea (no puede adelantarse, solo se mueve de costado), más ágil que un jugador común
-  const REACT = { easy: 24, normal: 17, hard: 15, expert: 13 };
+  const REACT = { easy: 20, normal: 15, hard: 12, expert: 10 };
   const AIMBAND = { easy: [0.3, 0.7], normal: [0.45, 0.8], hard: [0.6, 0.84], expert: [0.7, 0.84] };   // qué tan cerca del palo patea la máquina          // ticks que tarda el arquero en reaccionar al tiro
   const AIMERR = { easy: 0.32, normal: 0.16, hard: 0.08, expert: 0.03 };
   const GUESS = { easy: 0.4, normal: 0.22, hard: 0.1, expert: 0.03 };   // chance de que el arquero se tire para el lado equivocado
@@ -1134,7 +1135,7 @@ const PEN = (() => {
     Kk.ticks++;
     for (const e of G.events.splice(0)) Kk.events.push(e);
     /* un solo toque: el primer contacto con la pelota es el tiro */
-    if (G.lastTouch === sh) sh.noBall = true;
+    if (G.lastTouch === sh && !sh.noBall) { sh.noBall = true; b.vx *= BOOST; b.vy *= BOOST; }
     if (sh.x > W - SPOT + 10) { sh.x = W - SPOT + 10; if (sh.vx > 0) sh.vx = 0; }   // no puede pasar la línea de la pelota
     /* el arquero no sale de su zona */
     const ylim = gh - KEEPER.edge, xmin = W - KEEPER.x0, xmax = W - KEEPER.x1;
