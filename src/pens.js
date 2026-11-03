@@ -8,7 +8,8 @@ const PEN = (() => {
   const SPOT = 220;          // distancia del punto penal a la línea de gol
   const RUN = 165;           // cuánto detrás de la pelota arranca el que patea (afuera de la medialuna)
   const BOOST = 1.25;        // el tiro sale un poco más rápido que uno común
-  const AIM_TICKS = 600;     // tiempo para patear (10 s)
+  const AIM_TICKS = 600;
+  const FEINT = { back: 90, turn: 48 };   // amague del pateador Imposible     // tiempo para patear (10 s)
   const KEEPER = { acc: 2.2, damp: 0.9, x0: 24, x1: 24, edge: 14 };   // arquero clavado en la línea (no puede adelantarse, solo se mueve de costado), más ágil que un jugador común
   const REACT = { easy: 20, normal: 15, hard: 12, expert: 10, impossible: 7 };
   const AIMBAND = { easy: [0.3, 0.7], normal: [0.45, 0.8], hard: [0.6, 0.84], expert: [0.7, 0.84], impossible: [0.84, 0.88] };   // qué tan cerca del palo patea la máquina          // ticks que tarda el arquero en reaccionar al tiro
@@ -54,7 +55,7 @@ const PEN = (() => {
         wait: 40 + Math.floor(Math.random() * 40), phase: 0, side,
         aimY: side * gh * (band[0] + Math.random() * (band[1] - band[0])) + (Math.random() * 2 - 1) * err * gh,
         react: REACT[o.diff] != null ? REACT[o.diff] : 13, guess: Math.random() < (GUESS[o.diff] != null ? GUESS[o.diff] : 0.22),
-        noise: (Math.random() * 2 - 1) * err * 30
+        noise: (Math.random() * 2 - 1) * err * 30, read: o.diff === 'impossible'
       }
     };
   }
@@ -69,7 +70,15 @@ const PEN = (() => {
       else if (Math.abs(b.vx) > 0.3 && b.vx < 0) ty = gk.y * 0.9;      // el tiro se aleja o va al costado
       else ty = Math.max(-gh, Math.min(gh, b.y));
       if (a.guess && cr) ty = -Math.sign(cr.y || 1) * Math.abs(ty);     // se tiró para el lado equivocado
-    } else if (Kk.shotTick == null) ty = Math.sin(Kk.ticks / 28) * 7;   // se mueve un poco esperando
+    } else if (Kk.shotTick == null) {
+      ty = Math.sin(Kk.ticks / 28) * 7;                                 // se mueve un poco esperando
+      if (a.read) {
+        /* Imposible: lee la carrera del que patea (la pelota sale en la línea que une su centro con la pelota) */
+        const sh = G.players[0], dx = b.x - sh.x, dy = b.y - sh.y, dd = Math.hypot(dx, dy) || 1;
+        const spd = Math.hypot(sh.vx, sh.vy), cosA = spd > 0 ? (sh.vx * dx + sh.vy * dy) / (dd * spd) : 0;
+        if (dd < 90 && spd > 1 && cosA > 0.93 && dx > 1) ty = b.y + (W - b.x) * dy / dx;   // solo cuando ya corre derecho a la pelota
+      }
+    }
     ty = Math.max(-(gh - KEEPER.edge), Math.min(gh - KEEPER.edge, ty));
     const dy = (ty - gk.y) / 10 - gk.vy * 0.35, dx = (tx - gk.x) / 10 - gk.vx * 0.35;
     return { dx: Math.max(-1, Math.min(1, dx)), dy: Math.max(-1, Math.min(1, dy)), kick: false };

@@ -2,7 +2,7 @@
 
 Fútbol de discos al estilo HaxBall en el navegador. Se juega solo, sin servidor ni conexión: todo corre en tu navegador.
 
-- **Contra la máquina**: 1v1, 2v2 o 3v3, cuatro dificultades, cancha a elegir (chica, clásica, grande, enorme o personalizada).
+- **Contra la máquina**: 1v1, 2v2 o 3v3, cinco dificultades (de Fácil a Imposible), cancha a elegir (chica, clásica, grande, enorme o personalizada).
 - **Mundial**: elegís una selección, se sortean los grupos y jugás hasta la final. Formato de 48 selecciones (12 grupos, pasan los mejores terceros) o de 32. Perder en eliminación directa te saca del torneo. La dificultad de los rivales es configurable e incluye un modo progresivo.
 - **Gol de oro y penales**: si un partido termina empatado, se juega un gol de oro de 1 minuto (el primero que convierte gana). Si nadie convierte, se define por penales al estilo del mapa de penales de HaxBall: la pelota está en el punto penal, el que patea arranca atrás, corre y le pega con la física del juego, y el arquero (un disco pegado a la línea, que no puede adelantarse ni patear) trata de taparla. El que patea tiene un solo toque: después del primer contacto con la pelota queda quieto y ya no puede tocarla. Son cinco tiros cada uno y, si siguen igualados, muerte súbita.
   En el Mundial, la fase de grupos admite empates como siempre: ni gol de oro ni penales. Solo se juegan en las llaves.
@@ -42,6 +42,10 @@ test/              pruebas (bots, Mundial, penales, navegador)
 ```
 
 `npm test` corre las pruebas del Mundial y de los penales. Las de navegador (`test/browser1.js`, `test/browser_pens.js`) usan Playwright y esperan el servidor en el puerto 3100 (`PORT=3100 npm start`).
+
+## El nivel Imposible
+
+Usa un bot distinto al resto (`smDecide` / `smTick` en `src/core.js`): predice el recorrido de la pelota con rebotes, calcula cuántos ticks tarda cada jugador en llegar, y si llega primero prueba tiros al arco y de rebote en la pared, simula cada uno y elige el que nadie alcanza a cortar. Si el rival llega antes, se para entre la pelota y su arco y tapa los tiros yendo al punto del recorrido que alcanza primero. Patea solo cuando la simulación dice que conviene. En penales, el arquero lee la carrera del que patea.
 
 ## Límites conocidos
 

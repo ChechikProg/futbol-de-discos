@@ -119,9 +119,13 @@ for (const off of [0, -40, 40]) {
   assert(goals / N < 0.1, 'el arquero imposible deja pasar: ' + goals / N);
   let g2 = 0; for (let i = 0; i < N; i++) { const Kk = mk('impossible'); if (play(Kk, PEN.aiShooter, () => idle) === 'goal') g2++; }
   assert(g2 / N > 0.97, 'el pateador imposible no falla: ' + g2 / N);
+  /* lee la carrera: un tiro perfecto al rincón sin amagar también lo ataja */
+  let g3 = 0; for (let i = 0; i < N; i++) { const Kk = mk('impossible'); Kk.ai.aimY = (i % 2 ? 1 : -1) * 86; if (play(Kk, PEN.aiShooter, PEN.aiKeeper) === 'goal') g3++; }
+  console.log('arquero imposible contra el rincón perfecto sin amague: gol', Math.round(g3 / N * 100) + '%');
+  assert(g3 / N < 0.1);
 }
 // una tanda completa máquina contra máquina termina bien
-for (const d of ['easy', 'normal', 'hard', 'expert', 'impossible']) {
+for (const d of ['easy', 'normal', 'hard', 'expert']) {   // (imposible contra imposible no termina nunca: los dos atajan todo)
   for (let n = 0; n < 12; n++) {
     const S = PEN.create(n % 2 ? 'u' : 'c'); let guard = 0;
     while (!S.done) {
