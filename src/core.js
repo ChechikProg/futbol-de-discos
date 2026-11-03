@@ -183,15 +183,16 @@ function kickoffLimit(G, p) {
   }
 }
 
-/* Un tick de un jugador humano solo contra las paredes y los postes (sin pelota ni otros jugadores).
+/* Un tick de un jugador humano solo contra las paredes y los postes (sin pelota; los otros jugadores entran como discos fijos).
    El cliente lo usa para mover a su propio jugador sin esperar al servidor. */
-function predictPlayer(G, S, inp) {
+function predictPlayer(G, S, inp, others) {
   let dx = inp.dx, dy = inp.dy;
   const m = Math.hypot(dx, dy);
   if (m > 1) { dx /= m; dy /= m; }
   const a = inp.kick ? C.kickAcc : C.acc;
   S.vx += dx * a; S.vy += dy * a;
   S.x += S.vx; S.y += S.vy;
+  if (others) for (const o of others) discDisc(o, S);   // los demás jugadores cuentan como sólidos
   for (const post of G.posts) discDisc(post, S);
   clampPlayerBox(G.geo, S);
   if (G.phase === 'kickoff') kickoffLimit(G, S);
@@ -450,4 +451,4 @@ function aiDecide(G, p) {
   }
 }
 
-if (typeof module !== 'undefined') module.exports = { predictCross, C, PITCHES, PITCH_LIMITS, DIFF, makeGeo, createGame, step };
+if (typeof module !== 'undefined') module.exports = { predictCross, predictPlayer, C, PITCHES, PITCH_LIMITS, DIFF, makeGeo, createGame, step };

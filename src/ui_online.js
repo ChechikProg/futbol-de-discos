@@ -354,6 +354,17 @@ function onSnap(m) {
   reconcile(m);
 }
 
+/* Los otros jugadores como discos fijos (posiciones de un snapshot, o las que se ven si no se pasa ninguno) */
+function solids(arr) {
+  const out = [];
+  ogame.players.forEach((p, i) => {
+    if (i === NET.you) return;
+    const j = i * PSTRIDE;
+    out.push({ x: arr ? arr[j] : p.x, y: arr ? arr[j + 1] : p.y, vx: 0, vy: 0, r: p.r, invMass: 0, bCoef: p.bCoef });
+  });
+  return out;
+}
+
 /* Parte del estado confirmado por el servidor y vuelve a aplicar mis entradas pendientes */
 function reconcile(m) {
   if (NET.you < 0 || !ogame.players[NET.you]) return;
@@ -361,7 +372,8 @@ function reconcile(m) {
   const S = { x: m.p[j], y: m.p[j + 1], vx: m.p[j + 3], vy: m.p[j + 4], r: me.r, invMass: me.invMass, bCoef: me.bCoef, team: me.team };
   const ack = m.p[j + 5];
   while (PR.buf.length && PR.buf[0].s <= ack) PR.buf.shift();
-  for (const inp of PR.buf) predictPlayer(ogame, S, inp);
+  const oth = solids(m.p);
+  for (const inp of PR.buf) predictPlayer(ogame, S, inp, oth);
   if (!PR.init) { PR.init = true; PR.ox = PR.oy = 0; }
   else {
     const ex = PR.x + PR.ox - S.x, ey = PR.y + PR.oy - S.y;
@@ -378,7 +390,7 @@ function localTick() {
   const inp = { dx: Math.round(i.dx * 100) / 100, dy: Math.round(i.dy * 100) / 100, kick: !!i.kick, s: ++PR.seq };
   PR.buf.push(inp);
   if (PR.buf.length > 600) PR.buf.shift();
-  if (PR.init) predictPlayer(ogame, PR, inp);
+  if (PR.init) predictPlayer(ogame, PR, inp, solids());
   PR.ox *= 0.88; PR.oy *= 0.88;
   netSend({ t: 'in', dx: inp.dx, dy: inp.dy, kick: inp.kick, s: inp.s });
   const me = ogame.players[NET.you];
