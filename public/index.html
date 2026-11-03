@@ -290,7 +290,8 @@ const DIFF = {
   easy:   { key: 'easy',   label: 'Fácil',   think: 18, speed: 0.72, predict: 0,    aimErr: 0.5,   kickTol: 0.85, sloppy: 0.14, gkSkill: 0.35 },
   normal: { key: 'normal', label: 'Normal',  think: 11, speed: 0.86, predict: 0.45, aimErr: 0.22,  kickTol: 0.5,  sloppy: 0.05, gkSkill: 0.65 },
   hard:   { key: 'hard',   label: 'Difícil', think: 5,  speed: 0.96, predict: 0.85, aimErr: 0.08,  kickTol: 0.28, sloppy: 0.01, gkSkill: 0.9 },
-  expert: { key: 'expert', label: 'Experto', think: 2,  speed: 1,    predict: 1,    aimErr: 0.015, kickTol: 0.14, sloppy: 0,    gkSkill: 1 }
+  expert: { key: 'expert', label: 'Experto', think: 2,  speed: 1,    predict: 1,    aimErr: 0.015, kickTol: 0.14, sloppy: 0,    gkSkill: 1 },
+  impossible: { key: 'impossible', label: 'Imposible', think: 1, speed: 1.12, predict: 1, aimErr: 0, kickTol: 0.06, sloppy: 0, gkSkill: 1 }
 };
 
 /* Posiciones de saque para el equipo de la izquierda, en la cancha clásica */
@@ -1035,10 +1036,10 @@ const PEN = (() => {
   const BOOST = 1.25;        // el tiro sale un poco más rápido que uno común
   const AIM_TICKS = 600;     // tiempo para patear (10 s)
   const KEEPER = { acc: 2.2, damp: 0.9, x0: 24, x1: 24, edge: 14 };   // arquero clavado en la línea (no puede adelantarse, solo se mueve de costado), más ágil que un jugador común
-  const REACT = { easy: 20, normal: 15, hard: 12, expert: 10 };
-  const AIMBAND = { easy: [0.3, 0.7], normal: [0.45, 0.8], hard: [0.6, 0.84], expert: [0.7, 0.84] };   // qué tan cerca del palo patea la máquina          // ticks que tarda el arquero en reaccionar al tiro
-  const AIMERR = { easy: 0.32, normal: 0.16, hard: 0.08, expert: 0.03 };
-  const GUESS = { easy: 0.4, normal: 0.22, hard: 0.1, expert: 0.03 };   // chance de que el arquero se tire para el lado equivocado
+  const REACT = { easy: 20, normal: 15, hard: 12, expert: 10, impossible: 7 };
+  const AIMBAND = { easy: [0.3, 0.7], normal: [0.45, 0.8], hard: [0.6, 0.84], expert: [0.7, 0.84], impossible: [0.84, 0.88] };   // qué tan cerca del palo patea la máquina          // ticks que tarda el arquero en reaccionar al tiro
+  const AIMERR = { easy: 0.32, normal: 0.16, hard: 0.08, expert: 0.03, impossible: 0 };
+  const GUESS = { easy: 0.4, normal: 0.22, hard: 0.1, expert: 0.03, impossible: 0 };   // chance de que el arquero se tire para el lado equivocado
 
   /* ---- tanda: 5 tiros cada uno y muerte súbita ---- */
   function create(first) { return { first, u: [], c: [], done: false, winner: null }; }
@@ -1670,10 +1671,10 @@ const saveWcCfg = () => store.set('wccfg', WCCFG);
 const WC_GROUPS = [
   { key: 'format', label: 'Formato', opts: [['48', '48 selecciones'], ['32', '32 selecciones']],
     hints: { 48: '12 grupos de 4. Pasan los 2 primeros y los 8 mejores terceros: arrancás en dieciseisavos.', 32: '8 grupos de 4. Pasan los 2 primeros: arrancás en octavos.' } },
-  { key: 'diff', label: 'Dificultad de los rivales', opts: [['easy', 'Fácil'], ['normal', 'Normal'], ['hard', 'Difícil'], ['expert', 'Experto'], ['prog', 'Progresiva']],
+  { key: 'diff', label: 'Dificultad de los rivales', opts: [['easy', 'Fácil'], ['normal', 'Normal'], ['hard', 'Difícil'], ['expert', 'Experto'], ['impossible', 'Imposible'], ['prog', 'Progresiva']],
     hints: {
       easy: 'Los rivales juegan lento y fallan mucho.', normal: 'Partidos parejos.', hard: 'Rivales que anticipan y definen bien.',
-      expert: 'Reflejos casi perfectos en todos los partidos.', prog: 'Empieza fácil en el primer partido y sube hasta Experto en las semifinales y la final.'
+      expert: 'Reflejos casi perfectos en todos los partidos.', impossible: 'Rivales imposibles en todos los partidos: hay que jugar perfecto.', prog: 'Empieza fácil en el primer partido y sube hasta Experto en las semifinales y la final.'
     } },
   { key: 'minutes', label: 'Duración de cada partido', opts: [['1', '1 min'], ['2', '2 min'], ['3', '3 min'], ['5', '5 min']] },
   { key: 'size', label: 'Jugadores por equipo', opts: [['1', '1 vs 1'], ['2', '2 vs 2'], ['3', '3 vs 3']] }
@@ -2168,10 +2169,11 @@ const saveLocal = () => store.set('local', LOCAL);
 
 const LOCAL_GROUPS = [
   { key: 'size', label: 'Modo', opts: [['1', '1 vs 1'], ['2', '2 vs 2'], ['3', '3 vs 3']] },
-  { key: 'diff', label: 'Dificultad de la máquina', opts: [['easy', 'Fácil'], ['normal', 'Normal'], ['hard', 'Difícil'], ['expert', 'Experto']],
+  { key: 'diff', label: 'Dificultad de la máquina', opts: [['easy', 'Fácil'], ['normal', 'Normal'], ['hard', 'Difícil'], ['expert', 'Experto'], ['impossible', 'Imposible']],
     hints: {
       easy: 'Reacciona lento y define con poca puntería. Para entrar en calor.', normal: 'Juego parejo: persigue bien la pelota y a veces falla.',
-      hard: 'Anticipa la pelota, se posiciona y define con precisión.', expert: 'Reflejos casi perfectos. Calcula rebotes, ataja y define al ángulo.'
+      hard: 'Anticipa la pelota, se posiciona y define con precisión.', expert: 'Reflejos casi perfectos. Calcula rebotes, ataja y define al ángulo.',
+      impossible: 'Más rápido que vos, no falla y no regala nada. Tenés que jugar perfecto para ganarle.'
     } },
   { key: 'side', label: 'Tu equipo', opts: [['0', 'Rojo', 'red'], ['1', 'Azul', 'blue']] },
   { key: 'time', label: 'Tiempo', opts: [['3', '3 min'], ['5', '5 min'], ['7', '7 min'], ['0', 'Sin límite']] },

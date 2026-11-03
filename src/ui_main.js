@@ -6,10 +6,11 @@ const saveLocal = () => store.set('local', LOCAL);
 
 const LOCAL_GROUPS = [
   { key: 'size', label: 'Modo', opts: [['1', '1 vs 1'], ['2', '2 vs 2'], ['3', '3 vs 3']] },
-  { key: 'diff', label: 'Dificultad de la máquina', opts: [['easy', 'Fácil'], ['normal', 'Normal'], ['hard', 'Difícil'], ['expert', 'Experto']],
+  { key: 'diff', label: 'Dificultad de la máquina', opts: [['easy', 'Fácil'], ['normal', 'Normal'], ['hard', 'Difícil'], ['expert', 'Experto'], ['impossible', 'Imposible']],
     hints: {
       easy: 'Reacciona lento y define con poca puntería. Para entrar en calor.', normal: 'Juego parejo: persigue bien la pelota y a veces falla.',
-      hard: 'Anticipa la pelota, se posiciona y define con precisión.', expert: 'Reflejos casi perfectos. Calcula rebotes, ataja y define al ángulo.'
+      hard: 'Anticipa la pelota, se posiciona y define con precisión.', expert: 'Reflejos casi perfectos. Calcula rebotes, ataja y define al ángulo.',
+      impossible: 'Más rápido que vos, no falla y no regala nada. Tenés que jugar perfecto para ganarle.'
     } },
   { key: 'side', label: 'Tu equipo', opts: [['0', 'Rojo', 'red'], ['1', 'Azul', 'blue']] },
   { key: 'time', label: 'Tiempo', opts: [['3', '3 min'], ['5', '5 min'], ['7', '7 min'], ['0', 'Sin límite']] },

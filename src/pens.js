@@ -10,10 +10,10 @@ const PEN = (() => {
   const BOOST = 1.25;        // el tiro sale un poco más rápido que uno común
   const AIM_TICKS = 600;     // tiempo para patear (10 s)
   const KEEPER = { acc: 2.2, damp: 0.9, x0: 24, x1: 24, edge: 14 };   // arquero clavado en la línea (no puede adelantarse, solo se mueve de costado), más ágil que un jugador común
-  const REACT = { easy: 20, normal: 15, hard: 12, expert: 10 };
-  const AIMBAND = { easy: [0.3, 0.7], normal: [0.45, 0.8], hard: [0.6, 0.84], expert: [0.7, 0.84] };   // qué tan cerca del palo patea la máquina          // ticks que tarda el arquero en reaccionar al tiro
-  const AIMERR = { easy: 0.32, normal: 0.16, hard: 0.08, expert: 0.03 };
-  const GUESS = { easy: 0.4, normal: 0.22, hard: 0.1, expert: 0.03 };   // chance de que el arquero se tire para el lado equivocado
+  const REACT = { easy: 20, normal: 15, hard: 12, expert: 10, impossible: 7 };
+  const AIMBAND = { easy: [0.3, 0.7], normal: [0.45, 0.8], hard: [0.6, 0.84], expert: [0.7, 0.84], impossible: [0.84, 0.88] };   // qué tan cerca del palo patea la máquina          // ticks que tarda el arquero en reaccionar al tiro
+  const AIMERR = { easy: 0.32, normal: 0.16, hard: 0.08, expert: 0.03, impossible: 0 };
+  const GUESS = { easy: 0.4, normal: 0.22, hard: 0.1, expert: 0.03, impossible: 0 };   // chance de que el arquero se tire para el lado equivocado
 
   /* ---- tanda: 5 tiros cada uno y muerte súbita ---- */
   function create(first) { return { first, u: [], c: [], done: false, winner: null }; }

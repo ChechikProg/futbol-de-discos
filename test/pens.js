@@ -111,8 +111,17 @@ for (const off of [0, -40, 40]) {
   for (let i = 0; i < 200; i++) PEN.tick(Kk, idle, { dx: -1, dy: i % 2 ? 1 : -1, kick: false });
   assert(Math.abs(W - gk.x - 24) < 0.01, 'x fija: ' + (W - gk.x));
 }
+// nivel imposible: el arquero casi no deja pasar nada y el pateador va a los rincones
+{
+  let goals = 0, N = 120;
+  for (let i = 0; i < N; i++) { const Kk = mk('impossible'); Kk.ai.aimY = (i % 2 ? 1 : -1) * 70; if (play(Kk, PEN.aiShooter, PEN.aiKeeper) === 'goal') goals++; }
+  console.log('arquero imposible contra tiros fuertes a los rincones: gol', Math.round(goals / N * 100) + '%');
+  assert(goals / N < 0.1, 'el arquero imposible deja pasar: ' + goals / N);
+  let g2 = 0; for (let i = 0; i < N; i++) { const Kk = mk('impossible'); if (play(Kk, PEN.aiShooter, () => idle) === 'goal') g2++; }
+  assert(g2 / N > 0.97, 'el pateador imposible no falla: ' + g2 / N);
+}
 // una tanda completa máquina contra máquina termina bien
-for (const d of ['easy', 'normal', 'hard', 'expert']) {
+for (const d of ['easy', 'normal', 'hard', 'expert', 'impossible']) {
   for (let n = 0; n < 12; n++) {
     const S = PEN.create(n % 2 ? 'u' : 'c'); let guard = 0;
     while (!S.done) {

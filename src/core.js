@@ -18,7 +18,8 @@ const DIFF = {
   easy:   { key: 'easy',   label: 'Fácil',   think: 18, speed: 0.72, predict: 0,    aimErr: 0.5,   kickTol: 0.85, sloppy: 0.14, gkSkill: 0.35 },
   normal: { key: 'normal', label: 'Normal',  think: 11, speed: 0.86, predict: 0.45, aimErr: 0.22,  kickTol: 0.5,  sloppy: 0.05, gkSkill: 0.65 },
   hard:   { key: 'hard',   label: 'Difícil', think: 5,  speed: 0.96, predict: 0.85, aimErr: 0.08,  kickTol: 0.28, sloppy: 0.01, gkSkill: 0.9 },
-  expert: { key: 'expert', label: 'Experto', think: 2,  speed: 1,    predict: 1,    aimErr: 0.015, kickTol: 0.14, sloppy: 0,    gkSkill: 1 }
+  expert: { key: 'expert', label: 'Experto', think: 2,  speed: 1,    predict: 1,    aimErr: 0.015, kickTol: 0.14, sloppy: 0,    gkSkill: 1 },
+  impossible: { key: 'impossible', label: 'Imposible', think: 1, speed: 1.12, predict: 1, aimErr: 0, kickTol: 0.06, sloppy: 0, gkSkill: 1 }
 };
 
 /* Posiciones de saque para el equipo de la izquierda, en la cancha clásica */

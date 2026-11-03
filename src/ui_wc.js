@@ -17,10 +17,10 @@ const saveWcCfg = () => store.set('wccfg', WCCFG);
 const WC_GROUPS = [
   { key: 'format', label: 'Formato', opts: [['48', '48 selecciones'], ['32', '32 selecciones']],
     hints: { 48: '12 grupos de 4. Pasan los 2 primeros y los 8 mejores terceros: arrancás en dieciseisavos.', 32: '8 grupos de 4. Pasan los 2 primeros: arrancás en octavos.' } },
-  { key: 'diff', label: 'Dificultad de los rivales', opts: [['easy', 'Fácil'], ['normal', 'Normal'], ['hard', 'Difícil'], ['expert', 'Experto'], ['prog', 'Progresiva']],
+  { key: 'diff', label: 'Dificultad de los rivales', opts: [['easy', 'Fácil'], ['normal', 'Normal'], ['hard', 'Difícil'], ['expert', 'Experto'], ['impossible', 'Imposible'], ['prog', 'Progresiva']],
     hints: {
       easy: 'Los rivales juegan lento y fallan mucho.', normal: 'Partidos parejos.', hard: 'Rivales que anticipan y definen bien.',
-      expert: 'Reflejos casi perfectos en todos los partidos.', prog: 'Empieza fácil en el primer partido y sube hasta Experto en las semifinales y la final.'
+      expert: 'Reflejos casi perfectos en todos los partidos.', impossible: 'Rivales imposibles en todos los partidos: hay que jugar perfecto.', prog: 'Empieza fácil en el primer partido y sube hasta Experto en las semifinales y la final.'
     } },
   { key: 'minutes', label: 'Duración de cada partido', opts: [['1', '1 min'], ['2', '2 min'], ['3', '3 min'], ['5', '5 min']] },
   { key: 'size', label: 'Jugadores por equipo', opts: [['1', '1 vs 1'], ['2', '2 vs 2'], ['3', '3 vs 3']] }
