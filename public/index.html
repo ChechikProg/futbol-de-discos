@@ -1030,8 +1030,8 @@ if (typeof module !== 'undefined') module.exports = WC;
    "u" es el jugador y "c" la máquina. */
 const PEN = (() => {
   const K = typeof module !== 'undefined' ? require('./core.js') : { createGame, step, predictCross, C, DIFF };
-  const SPOT = 150;          // distancia del punto penal a la línea de gol
-  const RUN = 120;           // cuánto detrás de la pelota arranca el que patea (afuera de la medialuna)
+  const SPOT = 220;          // distancia del punto penal a la línea de gol
+  const RUN = 165;           // cuánto detrás de la pelota arranca el que patea (afuera de la medialuna)
   const AIM_TICKS = 600;     // tiempo para patear (10 s)
   const KEEPER = { acc: 2.2, damp: 0.9, x0: 24, x1: 24, edge: 14 };   // arquero clavado en la línea (no puede adelantarse, solo se mueve de costado), más ágil que un jugador común
   const REACT = { easy: 24, normal: 17, hard: 15, expert: 13 };
@@ -1062,7 +1062,7 @@ const PEN = (() => {
   function newKick(o) {
     const G = K.createGame({
       size: 1, diff: o.diff, humanTeam: -1, timeLimit: 0, scoreLimit: 0, manual: true,
-      pitch: { W: 370, H: 170, gh: 64 }, kits: o.kits, teamNames: o.names,
+      pitch: { W: 520, H: 240, gh: 100 }, kits: o.kits, teamNames: o.names,
       roster: [{ team: 0, human: true, name: o.names[0] }, { team: 1, human: true, name: o.names[1] }]
     });
     const W = G.geo.W, gh = G.geo.gh, sh = G.players[0], gk = G.players[1];
@@ -1073,7 +1073,7 @@ const PEN = (() => {
     const err = AIMERR[o.diff] != null ? AIMERR[o.diff] : 0.28;
     const side = Math.random() < 0.5 ? -1 : 1, band = AIMBAND[o.diff] || AIMBAND.normal;
     return {
-      G, o, face: { x: 1, y: 0 }, ticks: 0, shotTick: null, touched: false, pastLine: null, result: null, reason: '', events: [],
+      G, o, ticks: 0, shotTick: null, touched: false, pastLine: null, result: null, reason: '', events: [],
       ai: {
         wait: 40 + Math.floor(Math.random() * 40), phase: 0, side,
         aimY: side * gh * (band[0] + Math.random() * (band[1] - band[0])) + (Math.random() * 2 - 1) * err * gh,
@@ -1112,7 +1112,7 @@ const PEN = (() => {
       else return { dx: (px - sh.x) / 25 - sh.vx * 0.9, dy: (py - sh.y) / 25 - sh.vy * 0.9, kick: false };
     }
     const dx = b.x - sh.x, dy = b.y - sh.y, d = Math.hypot(dx, dy) || 1;
-    return { dx: dx / d, dy: dy / d, kick: true, face: { x: ux, y: uy } };
+    return { dx: dx / d, dy: dy / d, kick: true };
   }
 
   /* avanza un tick. inS / inK: controles del que patea y del arquero ({dx,dy,kick}) */
@@ -1127,11 +1127,6 @@ const PEN = (() => {
     const G = Kk.G, sh = G.players[0], gk = G.players[1], b = G.ball, W = G.geo.W, gh = G.geo.gh;
     const clamp1 = v => Math.max(-1, Math.min(1, +v || 0));
     const taken = Kk.shotTick != null;     // después del tiro el que patea queda quieto y no puede volver a tocar la pelota
-    /* hacia dónde "mira" el que patea: la dirección en la que se mueve (o la que marca la máquina) */
-    if (!taken) {
-      const fx = inS.face ? inS.face.x : clamp1(inS.dx), fy = inS.face ? inS.face.y : clamp1(inS.dy), fm = Math.hypot(fx, fy);
-      if (fm > 0.2) Kk.face = { x: fx / fm, y: fy / fm };
-    }
     sh.in.dx = taken ? 0 : clamp1(inS.dx); sh.in.dy = taken ? 0 : clamp1(inS.dy);
     sh.in.kick = !taken;                   // patea solo al tocar la pelota: no hace falta apretar nada
     gk.in.dx = clamp1(inK.dx); gk.in.dy = clamp1(inK.dy); gk.in.kick = !!inK.kick;
@@ -1139,11 +1134,7 @@ const PEN = (() => {
     Kk.ticks++;
     for (const e of G.events.splice(0)) Kk.events.push(e);
     /* un solo toque: el primer contacto con la pelota es el tiro */
-    if (G.lastTouch === sh && !sh.noBall) {
-      sh.noBall = true;
-      const sp = Math.max(Math.hypot(b.vx, b.vy), K.C.kickStr);   // la pelota sale hacia donde miraba, con toda la fuerza
-      b.vx = Kk.face.x * sp; b.vy = Kk.face.y * sp;
-    }
+    if (G.lastTouch === sh) sh.noBall = true;
     if (sh.x > W - SPOT + 10) { sh.x = W - SPOT + 10; if (sh.vx > 0) sh.vx = 0; }   // no puede pasar la línea de la pelota
     /* el arquero no sale de su zona */
     const ylim = gh - KEEPER.edge, xmin = W - KEEPER.x0, xmax = W - KEEPER.x1;
@@ -1956,7 +1947,7 @@ function initWc() {
 /* ===== Penales (al estilo del mapa de penales de HaxBall): se juega sobre el arco, con la física del juego =====
    El que patea arranca atrás de la pelota, corre y le pega. El arquero se mueve dentro de su área. */
 const PK = { cur: null };
-const BOX_D = 215, BOX_H = 150, ARC_R = 110;   // área grande y radio de la medialuna
+const BOX_D = 300, BOX_H = 200, ARC_R = 150;   // área grande y radio de la medialuna
 
 /* o: { names:[tú, rival], kits:[color tú, color rival], diff, first?: 'u'|'c', onDone({u, c, first}) } */
 function startPenalties(o) {
@@ -2053,7 +2044,7 @@ function drawPen(P, alpha) {
   const Kk = P.kick, G = Kk.G, geo = G.geo, W = geo.W, gh = geo.gh, d = geo.d;
   g2.setTransform(dpr, 0, 0, dpr, 0, 0);
   g2.fillStyle = COL.bg; g2.fillRect(0, 0, VW, VH);
-  const x0 = W - 340, x1 = W + d + 26, yh = gh + 100;
+  const x0 = W - 418, x1 = W + d + 26, yh = gh + 110;
   const top = 108, bot = 34, aw = VW - 16, ah = Math.max(60, VH - top - bot);
   const sc = Math.min(aw / (x1 - x0), ah / (2 * yh)), cx = (x0 + x1) / 2;
   const ix = q => q.px + (q.x - q.px) * alpha, iy = q => q.py + (q.y - q.py) * alpha;
@@ -2075,7 +2066,7 @@ function drawPen(P, alpha) {
   g2.beginPath();
   g2.moveTo(W, -yh); g2.lineTo(W, yh);
   g2.moveTo(W, -BOX_H); g2.lineTo(W - BOX_D, -BOX_H); g2.lineTo(W - BOX_D, BOX_H); g2.lineTo(W, BOX_H);
-  g2.moveTo(W, -gh - 30); g2.lineTo(W - 56, -gh - 30); g2.lineTo(W - 56, gh + 30); g2.lineTo(W, gh + 30);
+  g2.moveTo(W, -gh - 45); g2.lineTo(W - 80, -gh - 45); g2.lineTo(W - 80, gh + 45); g2.lineTo(W, gh + 45);
   g2.stroke();
   /* medialuna: el arco del círculo del punto penal que queda afuera del área */
   const dxA = BOX_D - PEN.SPOT, ang = Math.acos(dxA / ARC_R);
@@ -2094,12 +2085,6 @@ function drawPen(P, alpha) {
   }
   const b = G.ball;
   g2.beginPath(); g2.arc(ix(b), iy(b), b.r, 0, TAU); g2.fillStyle = '#fff'; g2.fill(); g2.lineWidth = 2; g2.strokeStyle = COL.ink; g2.stroke();
-  if (P.phase !== 'result' && Kk.shotTick == null && P.who === 'u') {     // flecha: hacia dónde saldría la pelota
-    const sh = G.players[0], ax = ix(sh), ay = iy(sh), f = Kk.face;
-    g2.strokeStyle = 'rgba(255,255,255,.85)'; g2.fillStyle = 'rgba(255,255,255,.85)'; g2.lineWidth = 2.5; g2.lineCap = 'round';
-    g2.beginPath(); g2.moveTo(ax + f.x * 22, ay + f.y * 22); g2.lineTo(ax + f.x * 56, ay + f.y * 56); g2.stroke();
-    g2.beginPath(); g2.moveTo(ax + f.x * 64, ay + f.y * 64); g2.lineTo(ax + f.x * 52 - f.y * 6, ay + f.y * 52 + f.x * 6); g2.lineTo(ax + f.x * 52 + f.y * 6, ay + f.y * 52 - f.x * 6); g2.closePath(); g2.fill();
-  }
   const labels = [];
   for (const p of G.players) {
     const x = ix(p), y = iy(p), fill = kitOf(G, p.team);
@@ -2161,7 +2146,7 @@ function drawPenHud(P) {
   }
   const live = P.phase === 'live' && P.kick.shotTick == null;
   let hint = P.who === 'u'
-    ? (isTouch ? 'Corré hacia la pelota: sale hacia donde mirás (un solo toque)' : 'Corré hacia la pelota: sale hacia donde mirás (un solo toque)')
+    ? (isTouch ? 'Corré y pegale a la pelota (un solo toque, sale como en un partido)' : 'Corré y pegale a la pelota (un solo toque, sale como en un partido)')
     : (isTouch ? 'Atajá: solo te movés sobre la línea del arco' : 'Atajá: solo te movés sobre la línea del arco');
   if (sudden && VW <= 640) hint = 'Muerte súbita · ' + hint;
   g2.font = '600 14px ' + BODY; g2.fillStyle = 'rgba(233,240,234,.85)';

@@ -96,15 +96,14 @@ for (const [d, min] of [['easy', 0.65], ['normal', 0.85], ['expert', 0.92]]) {
   PEN.tick(K2, idle, { dx: 0, dy: 0, kick: true });
   assert(Math.hypot(g2.ball.vx, g2.ball.vy) < 1, 'el arquero no patea: ' + Math.hypot(g2.ball.vx, g2.ball.vy));
 }
-// patea solo al tocar la pelota (sin apretar nada) y sale hacia donde mira el jugador
-for (const [fx, fy] of [[1, 0], [1, -0.25], [1, 0.3]]) {
-  const Kk = mk('normal'), G = Kk.G, sh = G.players[0], m = Math.hypot(fx, fy);
-  sh.x = sh.px = G.ball.x - fx / m * 110; sh.y = sh.py = G.ball.y - fy / m * 110;   // arranca en línea con la pelota
-  let g = 0; while (Kk.shotTick == null && g++ < 900) PEN.tick(Kk, { dx: fx / m, dy: fy / m, kick: false }, idle);
-  assert(Kk.shotTick != null, 'la toca y es el tiro, sin apretar patear');
-  const b = G.ball, sp = Math.hypot(b.vx, b.vy), ang = Math.atan2(b.vy, b.vx), want = Math.atan2(fy, fx);
-  assert(sp > 4.5, 'sale con fuerza: ' + sp.toFixed(2));
-  assert(Math.abs(ang - want) < 0.05, 'sale hacia donde mira: ' + ang.toFixed(3) + ' vs ' + want.toFixed(3));
+// patea solo al tocar la pelota (sin apretar nada), con la fuerza de un tiro normal
+for (const off of [0, -40, 40]) {
+  const Kk = mk('normal'), G = Kk.G, sh = G.players[0];
+  sh.y = sh.py = off;
+  let g = 0; while (Kk.shotTick == null && g++ < 900) PEN.tick(Kk, { dx: 1, dy: -off / 150, kick: false }, idle);
+  assert(Kk.shotTick != null && sh.noBall, 'la toca y es el tiro, sin apretar patear (' + off + ')');
+  const sp = Math.hypot(G.ball.vx, G.ball.vy);
+  assert(sp > 4 && sp < 8 && G.ball.vx > 0, 'sale como un tiro normal: ' + sp.toFixed(2));
 }
 // el arquero está clavado en la línea: no se adelanta nada
 {
