@@ -91,10 +91,26 @@ for (const [d, min] of [['easy', 0.65], ['normal', 0.85], ['expert', 0.92]]) {
 {
   const Kk = mk('normal'), G = Kk.G, W = G.geo.W, gk = G.players[1];
   for (let i = 0; i < 300; i++) PEN.tick(Kk, idle, { dx: -1, dy: 0, kick: false });
-  assert(gk.x >= W - PEN.KEEPER.x0 - 0.01 && W - gk.x <= 36, 'no se adelanta: ' + (W - gk.x));
+  assert(gk.x >= W - PEN.KEEPER.x0 - 0.01 && W - gk.x <= 25, 'no se adelanta: ' + (W - gk.x));
   const K2 = mk('normal'), g2 = K2.G; g2.ball.x = g2.players[1].x - 24; g2.ball.y = g2.players[1].y; g2.ball.vx = g2.ball.vy = 0;
   PEN.tick(K2, idle, { dx: 0, dy: 0, kick: true });
   assert(Math.hypot(g2.ball.vx, g2.ball.vy) < 1, 'el arquero no patea: ' + Math.hypot(g2.ball.vx, g2.ball.vy));
+}
+// patea solo al tocar la pelota (sin apretar nada) y sale hacia donde mira el jugador
+for (const [fx, fy] of [[1, 0], [1, -0.25], [1, 0.3]]) {
+  const Kk = mk('normal'), G = Kk.G, sh = G.players[0], m = Math.hypot(fx, fy);
+  sh.x = sh.px = G.ball.x - fx / m * 110; sh.y = sh.py = G.ball.y - fy / m * 110;   // arranca en línea con la pelota
+  let g = 0; while (Kk.shotTick == null && g++ < 900) PEN.tick(Kk, { dx: fx / m, dy: fy / m, kick: false }, idle);
+  assert(Kk.shotTick != null, 'la toca y es el tiro, sin apretar patear');
+  const b = G.ball, sp = Math.hypot(b.vx, b.vy), ang = Math.atan2(b.vy, b.vx), want = Math.atan2(fy, fx);
+  assert(sp > 4.5, 'sale con fuerza: ' + sp.toFixed(2));
+  assert(Math.abs(ang - want) < 0.05, 'sale hacia donde mira: ' + ang.toFixed(3) + ' vs ' + want.toFixed(3));
+}
+// el arquero está clavado en la línea: no se adelanta nada
+{
+  const Kk = mk('normal'), G = Kk.G, W = G.geo.W, gk = G.players[1];
+  for (let i = 0; i < 200; i++) PEN.tick(Kk, idle, { dx: -1, dy: i % 2 ? 1 : -1, kick: false });
+  assert(Math.abs(W - gk.x - 24) < 0.01, 'x fija: ' + (W - gk.x));
 }
 // una tanda completa máquina contra máquina termina bien
 for (const d of ['easy', 'normal', 'hard', 'expert']) {

@@ -2,6 +2,7 @@
 /* ===== Penales (al estilo del mapa de penales de HaxBall): se juega sobre el arco, con la física del juego =====
    El que patea arranca atrás de la pelota, corre y le pega. El arquero se mueve dentro de su área. */
 const PK = { cur: null };
+const BOX_D = 215, BOX_H = 150, ARC_R = 110;   // área grande y radio de la medialuna
 
 /* o: { names:[tú, rival], kits:[color tú, color rival], diff, first?: 'u'|'c', onDone({u, c, first}) } */
 function startPenalties(o) {
@@ -98,7 +99,7 @@ function drawPen(P, alpha) {
   const Kk = P.kick, G = Kk.G, geo = G.geo, W = geo.W, gh = geo.gh, d = geo.d;
   g2.setTransform(dpr, 0, 0, dpr, 0, 0);
   g2.fillStyle = COL.bg; g2.fillRect(0, 0, VW, VH);
-  const x0 = W - 278, x1 = W + d + 22, yh = gh + 58;
+  const x0 = W - 340, x1 = W + d + 26, yh = gh + 100;
   const top = 108, bot = 34, aw = VW - 16, ah = Math.max(60, VH - top - bot);
   const sc = Math.min(aw / (x1 - x0), ah / (2 * yh)), cx = (x0 + x1) / 2;
   const ix = q => q.px + (q.x - q.px) * alpha, iy = q => q.py + (q.y - q.py) * alpha;
@@ -119,9 +120,12 @@ function drawPen(P, alpha) {
   g2.strokeStyle = COL.line; g2.lineWidth = 3; g2.lineJoin = 'round'; g2.lineCap = 'round';
   g2.beginPath();
   g2.moveTo(W, -yh); g2.lineTo(W, yh);
-  g2.moveTo(W, -105); g2.lineTo(W - 165, -105); g2.lineTo(W - 165, 105); g2.lineTo(W, 105);
-  g2.moveTo(W, -gh - 6); g2.lineTo(W - 62, -gh - 6); g2.lineTo(W - 62, gh + 6); g2.lineTo(W, gh + 6);
+  g2.moveTo(W, -BOX_H); g2.lineTo(W - BOX_D, -BOX_H); g2.lineTo(W - BOX_D, BOX_H); g2.lineTo(W, BOX_H);
+  g2.moveTo(W, -gh - 30); g2.lineTo(W - 56, -gh - 30); g2.lineTo(W - 56, gh + 30); g2.lineTo(W, gh + 30);
   g2.stroke();
+  /* medialuna: el arco del círculo del punto penal que queda afuera del área */
+  const dxA = BOX_D - PEN.SPOT, ang = Math.acos(dxA / ARC_R);
+  g2.beginPath(); g2.arc(W - PEN.SPOT, 0, ARC_R, Math.PI - ang, Math.PI + ang); g2.stroke();
   g2.strokeStyle = 'rgba(199,230,189,.75)'; g2.lineWidth = 2;
   g2.beginPath(); g2.moveTo(W, -gh); g2.lineTo(W + d, -gh); g2.lineTo(W + d, gh); g2.lineTo(W, gh); g2.stroke();
   g2.beginPath(); g2.arc(W - PEN.SPOT, 0, 3.5, 0, TAU); g2.fillStyle = COL.line; g2.fill();
@@ -136,6 +140,12 @@ function drawPen(P, alpha) {
   }
   const b = G.ball;
   g2.beginPath(); g2.arc(ix(b), iy(b), b.r, 0, TAU); g2.fillStyle = '#fff'; g2.fill(); g2.lineWidth = 2; g2.strokeStyle = COL.ink; g2.stroke();
+  if (P.phase !== 'result' && Kk.shotTick == null && P.who === 'u') {     // flecha: hacia dónde saldría la pelota
+    const sh = G.players[0], ax = ix(sh), ay = iy(sh), f = Kk.face;
+    g2.strokeStyle = 'rgba(255,255,255,.85)'; g2.fillStyle = 'rgba(255,255,255,.85)'; g2.lineWidth = 2.5; g2.lineCap = 'round';
+    g2.beginPath(); g2.moveTo(ax + f.x * 22, ay + f.y * 22); g2.lineTo(ax + f.x * 56, ay + f.y * 56); g2.stroke();
+    g2.beginPath(); g2.moveTo(ax + f.x * 64, ay + f.y * 64); g2.lineTo(ax + f.x * 52 - f.y * 6, ay + f.y * 52 + f.x * 6); g2.lineTo(ax + f.x * 52 + f.y * 6, ay + f.y * 52 - f.x * 6); g2.closePath(); g2.fill();
+  }
   const labels = [];
   for (const p of G.players) {
     const x = ix(p), y = iy(p), fill = kitOf(G, p.team);
@@ -197,7 +207,7 @@ function drawPenHud(P) {
   }
   const live = P.phase === 'live' && P.kick.shotTick == null;
   let hint = P.who === 'u'
-    ? (isTouch ? 'Corré y tocá PATEAR: tenés un solo toque' : 'Corré y pateala: tenés un solo toque (X o Espacio)')
+    ? (isTouch ? 'Corré hacia la pelota: sale hacia donde mirás (un solo toque)' : 'Corré hacia la pelota: sale hacia donde mirás (un solo toque)')
     : (isTouch ? 'Atajá: solo te movés sobre la línea del arco' : 'Atajá: solo te movés sobre la línea del arco');
   if (sudden && VW <= 640) hint = 'Muerte súbita · ' + hint;
   g2.font = '600 14px ' + BODY; g2.fillStyle = 'rgba(233,240,234,.85)';

@@ -10,7 +10,7 @@ const tie = (s0, s1) => `(() => { game.score = [${s0}, ${s1}]; game.phase = 'pla
 // corre y patea con las teclas (cuando toca atajar, solo mueve al arquero) hasta que aparece "Continuar"
 async function playShootout(page, tag) {
   await page.waitForFunction(() => typeof PK !== 'undefined' && PK.cur && mode === 'pens', null, { timeout: 8000 });
-  await page.keyboard.down('ArrowRight'); await page.keyboard.down('Space');
+  await page.keyboard.down('ArrowRight');
   let shotShot = false, whoSeen = new Set(), kicks = 0;
   const t0 = Date.now();
   while (Date.now() - t0 < 150000) {
@@ -20,7 +20,7 @@ async function playShootout(page, tag) {
     if (!shotShot && st.phase === 'live' && st.ticks > 20) { await page.screenshot({ path: OUT + '/20-pens-' + tag + '.png' }); shotShot = true; }
     await page.waitForTimeout(120);
   }
-  await page.keyboard.up('ArrowRight'); await page.keyboard.up('Space');
+  await page.keyboard.up('ArrowRight');
   await page.waitForSelector('#pens:not([hidden]) .btn', { timeout: 5000 });
   const res = await page.evaluate(() => ({ title: document.querySelector('#pens #endTitle').textContent, nums: [...document.querySelectorAll('#pens #endScore b')].map(b => +b.textContent) }));
   await page.screenshot({ path: OUT + '/21-pens-fin-' + tag + '.png' });

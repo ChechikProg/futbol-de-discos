@@ -179,6 +179,7 @@ function setState(s) {
   state = s;
   $('pauseBtn').hidden = s !== 'playing';
   $('touch').hidden = !((s === 'playing') && isTouch);
+  $('kickBtn').style.display = mode === 'pens' ? 'none' : '';     // en los penales se patea solo al tocar la pelota
   if (s === 'playing') showScreen(null);
   else if (s === 'paused') showScreen('pause');
   else if (s === 'ended') showScreen('end');

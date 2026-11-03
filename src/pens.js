@@ -6,10 +6,10 @@
 const PEN = (() => {
   const K = typeof module !== 'undefined' ? require('./core.js') : { createGame, step, predictCross, C, DIFF };
   const SPOT = 150;          // distancia del punto penal a la línea de gol
-  const RUN = 95;            // cuánto detrás de la pelota arranca el que patea
+  const RUN = 120;           // cuánto detrás de la pelota arranca el que patea (afuera de la medialuna)
   const AIM_TICKS = 600;     // tiempo para patear (10 s)
-  const KEEPER = { acc: 2.2, damp: 0.9, x0: 34, x1: 14, edge: 14 };   // arquero pegado a la línea (no puede adelantarse), más ágil que un jugador común
-  const REACT = { easy: 26, normal: 18, hard: 16, expert: 14 };
+  const KEEPER = { acc: 2.2, damp: 0.9, x0: 24, x1: 24, edge: 14 };   // arquero clavado en la línea (no puede adelantarse, solo se mueve de costado), más ágil que un jugador común
+  const REACT = { easy: 24, normal: 17, hard: 15, expert: 13 };
   const AIMBAND = { easy: [0.3, 0.7], normal: [0.45, 0.8], hard: [0.6, 0.84], expert: [0.7, 0.84] };   // qué tan cerca del palo patea la máquina          // ticks que tarda el arquero en reaccionar al tiro
   const AIMERR = { easy: 0.32, normal: 0.16, hard: 0.08, expert: 0.03 };
   const GUESS = { easy: 0.4, normal: 0.22, hard: 0.1, expert: 0.03 };   // chance de que el arquero se tire para el lado equivocado
@@ -48,7 +48,7 @@ const PEN = (() => {
     const err = AIMERR[o.diff] != null ? AIMERR[o.diff] : 0.28;
     const side = Math.random() < 0.5 ? -1 : 1, band = AIMBAND[o.diff] || AIMBAND.normal;
     return {
-      G, o, ticks: 0, shotTick: null, touched: false, pastLine: null, result: null, reason: '', events: [],
+      G, o, face: { x: 1, y: 0 }, ticks: 0, shotTick: null, touched: false, pastLine: null, result: null, reason: '', events: [],
       ai: {
         wait: 40 + Math.floor(Math.random() * 40), phase: 0, side,
         aimY: side * gh * (band[0] + Math.random() * (band[1] - band[0])) + (Math.random() * 2 - 1) * err * gh,
@@ -87,7 +87,7 @@ const PEN = (() => {
       else return { dx: (px - sh.x) / 25 - sh.vx * 0.9, dy: (py - sh.y) / 25 - sh.vy * 0.9, kick: false };
     }
     const dx = b.x - sh.x, dy = b.y - sh.y, d = Math.hypot(dx, dy) || 1;
-    return { dx: dx / d, dy: dy / d, kick: true };
+    return { dx: dx / d, dy: dy / d, kick: true, face: { x: ux, y: uy } };
   }
 
   /* avanza un tick. inS / inK: controles del que patea y del arquero ({dx,dy,kick}) */
@@ -102,13 +102,23 @@ const PEN = (() => {
     const G = Kk.G, sh = G.players[0], gk = G.players[1], b = G.ball, W = G.geo.W, gh = G.geo.gh;
     const clamp1 = v => Math.max(-1, Math.min(1, +v || 0));
     const taken = Kk.shotTick != null;     // después del tiro el que patea queda quieto y no puede volver a tocar la pelota
-    sh.in.dx = taken ? 0 : clamp1(inS.dx); sh.in.dy = taken ? 0 : clamp1(inS.dy); sh.in.kick = taken ? false : !!inS.kick;
+    /* hacia dónde "mira" el que patea: la dirección en la que se mueve (o la que marca la máquina) */
+    if (!taken) {
+      const fx = inS.face ? inS.face.x : clamp1(inS.dx), fy = inS.face ? inS.face.y : clamp1(inS.dy), fm = Math.hypot(fx, fy);
+      if (fm > 0.2) Kk.face = { x: fx / fm, y: fy / fm };
+    }
+    sh.in.dx = taken ? 0 : clamp1(inS.dx); sh.in.dy = taken ? 0 : clamp1(inS.dy);
+    sh.in.kick = !taken;                   // patea solo al tocar la pelota: no hace falta apretar nada
     gk.in.dx = clamp1(inK.dx); gk.in.dy = clamp1(inK.dy); gk.in.kick = !!inK.kick;
     K.step(G);
     Kk.ticks++;
     for (const e of G.events.splice(0)) Kk.events.push(e);
     /* un solo toque: el primer contacto con la pelota es el tiro */
-    if (G.lastTouch === sh) sh.noBall = true;
+    if (G.lastTouch === sh && !sh.noBall) {
+      sh.noBall = true;
+      const sp = Math.max(Math.hypot(b.vx, b.vy), K.C.kickStr);   // la pelota sale hacia donde miraba, con toda la fuerza
+      b.vx = Kk.face.x * sp; b.vy = Kk.face.y * sp;
+    }
     if (sh.x > W - SPOT + 10) { sh.x = W - SPOT + 10; if (sh.vx > 0) sh.vx = 0; }   // no puede pasar la línea de la pelota
     /* el arquero no sale de su zona */
     const ylim = gh - KEEPER.edge, xmin = W - KEEPER.x0, xmax = W - KEEPER.x1;
