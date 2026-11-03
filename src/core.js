@@ -3,7 +3,7 @@
 const C = {
   ballR: 10, playerR: 15, postR: 8, goalDepth: 40,
   acc: 0.1, kickAcc: 0.07, pDamp: 0.96, bDamp: 0.99, kickStr: 5, kickRange: 4,
-  pBC: 0.5, bBC: 0.5, postBC: 0.5, wallBC: 1, goalTicks: 150
+  pBC: 0.5, bBC: 0.5, postBC: 0.5, wallBC: 1, goalTicks: 150, goldenTicks: 3600
 };
 
 const PITCHES = {
@@ -71,7 +71,7 @@ function createGame(cfg) {
   const G = {
     cfg, geo, kits: cfg.kits || null, players: [], ball: mkDisc(0, 0, C.ballR, 1, C.bBC), posts: [], nTeam: [0, 0],
     score: [0, 0], tick: 0, playTicks: 0, phase: 'kickoff', kickTeam: 0,
-    goalTimer: 0, lastGoalTeam: -1, lastTouch: null, tied: false, over: false,
+    goalTimer: 0, lastGoalTeam: -1, lastTouch: null, tied: false, overtime: false, otTicks: 0, manual: !!cfg.manual, over: false,
     winner: -1, pendingEnd: false, banner: null, events: [], humanTeam: cfg.humanTeam
   };
   for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
@@ -187,7 +187,7 @@ function step(G) {
   if (G.over) return;
   G.tick++;
   const ball = G.ball, P = G.players, geo = G.geo;
-  for (const p of P) if (!p.human) aiUpdate(G, p);
+  if (!G.manual) for (const p of P) if (!p.human) aiUpdate(G, p);
 
   ball.px = ball.x; ball.py = ball.y;
   for (const p of P) {
@@ -197,7 +197,7 @@ function step(G) {
     let dx = inp.dx, dy = inp.dy;
     const m = Math.hypot(dx, dy);
     if (m > 1) { dx /= m; dy /= m; }
-    const a = (inp.kick ? C.kickAcc : C.acc) * (p.human ? 1 : p.diff.speed);
+    const a = (inp.kick ? C.kickAcc : C.acc) * (p.human ? 1 : p.diff.speed) * (p.accMul || 1);
     p.vx += dx * a; p.vy += dy * a;
     if (inp.kick) {
       if (p.armed) {
@@ -226,7 +226,7 @@ function step(G) {
   for (const p of P) clampPlayerBox(geo, p);
   if (G.phase === 'kickoff') for (const p of P) kickoffLimit(G, p);
 
-  for (const p of P) { p.vx *= C.pDamp; p.vy *= C.pDamp; }
+  for (const p of P) { const dm = p.damp || C.pDamp; p.vx *= dm; p.vy *= dm; }
   ball.vx *= C.bDamp; ball.vy *= C.bDamp;
 
   if (G.banner && G.banner.t > 0) G.banner.t--;
@@ -235,9 +235,17 @@ function step(G) {
     G.playTicks++;
     if (ball.x < -geo.W) goal(G, 1);
     else if (ball.x > geo.W) goal(G, 0);
-    else if (G.cfg.timeLimit > 0 && G.playTicks >= G.cfg.timeLimit * 3600) {
-      /* empate al terminar el tiempo: en los partidos que no admiten empate se define por penales (lo resuelve la interfaz) */
-      G.tied = G.score[0] === G.score[1] && !G.cfg.allowDraw;
+    else if (G.cfg.timeLimit > 0 && !G.overtime && G.playTicks >= G.cfg.timeLimit * 3600) {
+      if (G.score[0] !== G.score[1] || G.cfg.allowDraw) finish(G);   // la fase de grupos admite empates
+      else {
+        /* empate en un partido que no admite empate: gol de oro de 1 minuto */
+        G.overtime = true; G.otTicks = 0;
+        G.banner = { text: 'Gol de oro', sub: '1 minuto · el próximo gol gana', team: -1, t: 150 };
+        ev(G, 'overtime');
+      }
+    } else if (G.overtime && ++G.otTicks >= C.goldenTicks) {
+      /* nadie convirtió: se define por penales (lo resuelve la interfaz) */
+      G.tied = true;
       finish(G);
     }
   } else if (G.phase === 'goal') {
@@ -263,7 +271,7 @@ function goal(G, team) {
     t: C.goalTicks
   };
   const lim = G.cfg.scoreLimit;
-  G.pendingEnd = lim > 0 && G.score[team] >= lim;
+  G.pendingEnd = (lim > 0 && G.score[team] >= lim) || G.overtime;
   ev(G, 'goal');
 }
 

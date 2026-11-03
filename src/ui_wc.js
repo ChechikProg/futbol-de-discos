@@ -124,7 +124,7 @@ function matchTab(body) {
         h('div', { class: 'side' }, kitChip(u.c, true), h('b', { text: u.n }), h('span', { text: starsText(u.c) })),
         h('div', { class: 'vsx', text: 'vs' }),
         h('div', { class: 'side' }, kitChip(o.c, true), h('b', { text: o.n }), h('span', { text: starsText(o.c) }))),
-      h('p', { class: 'meta', text: 'Rival: ' + diffLabel(d) + ' · ' + wc.size + ' vs ' + wc.size + ' · ' + wc.minutes + ' min · cancha ' + pitchText(wc.pitch) + (p.kind === 'ko' ? ' · si hay empate, penales' : '') }),
+      h('p', { class: 'meta', text: 'Rival: ' + diffLabel(d) + ' · ' + wc.size + ' vs ' + wc.size + ' · ' + wc.minutes + ' min · cancha ' + pitchText(wc.pitch) + (p.kind === 'ko' ? ' · si hay empate: gol de oro y penales' : '') }),
       h('div', { class: 'row' },
         h('button', { class: 'btn go', type: 'button', text: 'Jugar partido', onclick: wcPlay }),
         h('button', { class: 'btn', type: 'button', text: 'Simular partido', onclick: wcSim }))));
@@ -267,7 +267,7 @@ function wcMatchEnd(p, oppC, ug, og, pen) {
   saveWc();
   const win = pen ? pen.u > pen.c : ug > og, draw = !pen && ug === og;
   const u = WC.BY[wc.user], o = WC.BY[oppC];
-  let meta = p.label + (pen ? ' · penales ' + pen.u + '–' + pen.c : '');
+  let meta = p.label + (pen ? ' · penales ' + pen.u + '–' + pen.c : game.overtime ? ' · gol de oro' : '');
   if (wc.out) meta += ' · Quedaste eliminado';
   else if (wc.stage === 'done') meta += ' · ' + wc.exit;
   else if (p.kind === 'group' && wc.stage === 'ko') meta += ' · ¡Clasificaste!';

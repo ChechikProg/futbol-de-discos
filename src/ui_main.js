@@ -46,7 +46,7 @@ function localOver() {
     showEnd({
       title: win < 0 ? 'Empate' : (win === me ? '¡Ganaste!' : 'Perdiste'), res: win < 0 ? 'draw' : (win === me ? 'win' : 'lose'),
       score: game.score, colors: KIT_DEFAULT,
-      meta: DIFF[LOCAL.diff].label + ' · ' + LOCAL.size + ' vs ' + LOCAL.size + ' · cancha ' + pitchText(LOCAL.pitch) + (pen ? ' · penales ' + pen.u + '–' + pen.c : ''),
+      meta: DIFF[LOCAL.diff].label + ' · ' + LOCAL.size + ' vs ' + LOCAL.size + ' · cancha ' + pitchText(LOCAL.pitch) + (pen ? ' · gol de oro sin goles · penales ' + pen.u + '–' + pen.c : game.overtime ? ' · definido con gol de oro' : ''),
       buttons: [
         { text: 'Revancha', go: true, fn: startLocal },
         { text: 'Cambiar opciones', fn: () => { setState('idle'); showScreen('local'); } },

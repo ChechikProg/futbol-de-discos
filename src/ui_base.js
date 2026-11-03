@@ -161,7 +161,7 @@ const cv = $('cv'), g2 = cv.getContext('2d');
 let dpr = 1, VW = 0, VH = 0;
 let game = null;          // partida local (contra la máquina o Mundial)
 let view = null;          // lo que se está dibujando
-let mode = 'none';        // 'local' | 'wc'
+let mode = 'none';        // 'local' | 'wc' | 'pens'
 let state = 'idle';       // 'idle' | 'playing' | 'paused' | 'ended'
 let acc = 0, lastT = 0;
 const keys = {};
@@ -428,8 +428,8 @@ function drawHud(G, extra) {
   g2.fillStyle = kitOf(G, 0); g2.fillText(String(G.score[0]), x0 + 28, y0 + hh / 2 + 1);
   g2.fillStyle = kitOf(G, 1); g2.fillText(String(G.score[1]), x0 + w - 28, y0 + hh / 2 + 1);
   g2.font = '600 20px ' + FONT;
-  g2.fillStyle = '#e9f0ea';
-  g2.fillText(fmtTime(G.playTicks), VW / 2, y0 + hh / 2 + 1);
+  g2.fillStyle = G.overtime ? '#ffd27a' : '#e9f0ea';
+  g2.fillText(G.overtime ? fmtTime(Math.max(0, C.goldenTicks - G.otTicks)) : fmtTime(G.playTicks), VW / 2, y0 + hh / 2 + 1);
   if (codes) {
     g2.font = '700 14px ' + FONT;
     g2.textAlign = 'right'; g2.fillStyle = kitOf(G, 0); g2.fillText(codes[0], x0 - 10, y0 + hh / 2 + 1);
@@ -439,7 +439,7 @@ function drawHud(G, extra) {
   const sub = G.cfg.subtitle ? G.cfg.subtitle : DIFF[G.cfg.diff] ? DIFF[G.cfg.diff].label + ' · ' + G.cfg.size + 'v' + G.cfg.size : '';
   const lim = G.cfg.timeLimit > 0 ? ' · ' + G.cfg.timeLimit + ':00' : '';
   const goals = G.cfg.scoreLimit > 0 ? ' · a ' + G.cfg.scoreLimit : '';
-  g2.fillText(sub + lim + goals, VW / 2, y0 + hh + 16);
+  g2.fillText(G.overtime ? 'Gol de oro · el próximo gol gana' : sub + lim + goals, VW / 2, y0 + hh + 16);
   if (extra && extra.ping != null) {
     g2.textAlign = 'left'; g2.fillStyle = extra.ping > 150 ? '#ffb4a3' : 'rgba(233,240,234,.62)';
     g2.fillText(extra.ping + ' ms', 14, 28);
@@ -465,6 +465,7 @@ const DT = 1000 / 60;
 let onLocalEnd = null;
 function frame(now) {
   requestAnimationFrame(frame);
+  if (mode === 'pens') { penFrame(now); return; }
   if (state === 'playing' && game && (mode === 'local' || mode === 'wc')) {
     acc += Math.min(now - lastT, 100); lastT = now;
     const human = game.players.find(q => q.human);
