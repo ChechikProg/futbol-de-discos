@@ -3,10 +3,9 @@
 const NET = {
   ws: null, state: 'off', id: null, room: null, rooms: [], err: '', rtt: null,
   name: store.get('name', '') || ('Jugador' + Math.floor(100 + Math.random() * 900)),
-  pendingJoin: null, snaps: [], renderT: null, lastFrame: 0, lastSent: '', lastSendT: 0, you: -1, pingT: null, listT: null,
+  pendingJoin: null, snaps: [], renderT: null, lastFrame: 0, lastArr: 0, jit: 4, delay: 60, you: -1, pingT: null, listT: null,
   inGame: false
 };
-const SERVER_DELAY = 90; // ms de retraso al dibujar, para suavizar el movimiento
 let ogame = null;
 let hostCfg = { size: '2', time: '3', goals: '5', bots: '1', diff: 'normal', pitch: { preset: 'classic' } };
 let cfgCtl = null, lastCfgJson = '', lastHost = null;
@@ -299,15 +298,26 @@ function paintRoom() {
 }
 
 /* ---------- Partido online ---------- */
+/* Mi jugador se mueve al instante con la misma física que el servidor (predicción).
+   Cuando llega el estado del servidor, se vuelve a calcular desde ahí con las entradas que
+   el servidor todavía no procesó, y la diferencia se corrige de a poco para que no salte. */
+const PR = { x: 0, y: 0, vx: 0, vy: 0, ox: 0, oy: 0, seq: 0, buf: [], init: false, acc: 0, errMax: 0 };
+const PSTRIDE = 6;
+
 function onlineStart(m) {
-  NET.inGame = true; NET.you = m.you; NET.snaps = []; NET.renderT = null; NET.lastSent = '';
+  NET.inGame = true; NET.you = m.you; NET.snaps = []; NET.renderT = null; NET.lastArr = 0; NET.jit = 4; NET.delay = 60;
+  PR.init = false; PR.buf = []; PR.ox = PR.oy = 0; PR.acc = 0;
   const cfg = m.cfg;
   ogame = createGame({
     size: cfg.size, diff: cfg.diff, humanTeam: -1, timeLimit: cfg.timeLimit, scoreLimit: cfg.scoreLimit, pitch: cfg.pitch,
     roster: m.roster.map(r => ({ team: r.team, human: false, name: r.name }))
   });
   ogame.cfg.subtitle = 'Online · ' + cfg.size + 'v' + cfg.size;
-  if (m.you >= 0 && ogame.players[m.you]) ogame.players[m.you].me = true;
+  if (m.you >= 0 && ogame.players[m.you]) {
+    const me = ogame.players[m.you];
+    me.me = true;
+    PR.r = me.r; PR.invMass = me.invMass; PR.bCoef = me.bCoef; PR.team = me.team;
+  }
   view = ogame; mode = 'online';
   loadFonts(); unlockAudio();
   pauseOpts = () => {
@@ -323,16 +333,56 @@ function onlineStart(m) {
 
 function onSnap(m) {
   if (!ogame) return;
+  const now = performance.now();
+  if (NET.lastArr) {
+    /* qué tan irregular llega el flujo: define cuánto retardo hace falta para verse fluido */
+    const gap = now - NET.lastArr;
+    NET.jit = NET.jit * 0.95 + Math.abs(gap - DT) * 0.05;
+    NET.delay = clampN(DT * 2 + NET.jit * 3, 50, 180);
+  }
+  NET.lastArr = now;
   const T = m.k * DT;
   NET.snaps.push({ T, m });
-  if (NET.snaps.length > 40) NET.snaps.shift();
+  if (NET.snaps.length > 60) NET.snaps.shift();
   ogame.score = m.sc; ogame.phase = m.f === 'p' ? 'play' : m.f === 'g' ? 'goal' : 'kickoff';
   ogame.playTicks = m.m; ogame.overtime = !!m.o; ogame.tick = m.k;
   if (m.e) for (const e of m.e) {
     sound(e);
     if (e === 'overtime') ogame.banner = { text: 'Prórroga', sub: 'El próximo gol gana', team: -1, t: 150 };
   }
-  if (m.bn) ogame.banner = { text: '¡GOL!', team: m.bn[0], sub: m.bn[1], t: 150 };
+  if (m.bn) { ogame.banner = { text: '¡GOL!', team: m.bn[0], sub: m.bn[1], t: 150 }; ogame.kickTeam = 1 - m.bn[0]; }
+  reconcile(m);
+}
+
+/* Parte del estado confirmado por el servidor y vuelve a aplicar mis entradas pendientes */
+function reconcile(m) {
+  if (NET.you < 0 || !ogame.players[NET.you]) return;
+  const j = NET.you * PSTRIDE, me = ogame.players[NET.you];
+  const S = { x: m.p[j], y: m.p[j + 1], vx: m.p[j + 3], vy: m.p[j + 4], r: me.r, invMass: me.invMass, bCoef: me.bCoef, team: me.team };
+  const ack = m.p[j + 5];
+  while (PR.buf.length && PR.buf[0].s <= ack) PR.buf.shift();
+  for (const inp of PR.buf) predictPlayer(ogame, S, inp);
+  if (!PR.init) { PR.init = true; PR.ox = PR.oy = 0; }
+  else {
+    const ex = PR.x + PR.ox - S.x, ey = PR.y + PR.oy - S.y;
+    if (Math.hypot(ex, ey) > 60) { PR.ox = PR.oy = 0; }      // salto grande (saque, gol): sin suavizar
+    else { PR.ox = ex; PR.oy = ey; }                          // lo que se ve no se mueve; el desvío se va apagando
+    PR.errMax = Math.max(PR.errMax, Math.hypot(PR.x - S.x, PR.y - S.y));
+  }
+  PR.x = S.x; PR.y = S.y; PR.vx = S.vx; PR.vy = S.vy;
+}
+
+/* Un tick local: leer controles, moverme ya, y avisar al servidor */
+function localTick() {
+  const i = state === 'playing' ? readInput() : { dx: 0, dy: 0, kick: false };
+  const inp = { dx: Math.round(i.dx * 100) / 100, dy: Math.round(i.dy * 100) / 100, kick: !!i.kick, s: ++PR.seq };
+  PR.buf.push(inp);
+  if (PR.buf.length > 600) PR.buf.shift();
+  if (PR.init) predictPlayer(ogame, PR, inp);
+  PR.ox *= 0.88; PR.oy *= 0.88;
+  netSend({ t: 'in', dx: inp.dx, dy: inp.dy, kick: inp.kick, s: inp.s });
+  const me = ogame.players[NET.you];
+  if (me) { me.in.kick = inp.kick; me.armed = true; }
 }
 
 function applySnap(a, b, f) {
@@ -340,13 +390,14 @@ function applySnap(a, b, f) {
   G.ball.x = G.ball.px = a.m.b[0] + (b.m.b[0] - a.m.b[0]) * f;
   G.ball.y = G.ball.py = a.m.b[1] + (b.m.b[1] - a.m.b[1]) * f;
   for (let i = 0; i < G.players.length; i++) {
-    const p = G.players[i], j = i * 3;
+    const p = G.players[i], j = i * PSTRIDE;
     if (pa[j] === undefined) continue;
     /* un salto grande es un saque tras gol: no interpolar */
     const dx = pb[j] - pa[j], dy = pb[j + 1] - pa[j + 1];
     const k = (Math.abs(dx) > 120 || Math.abs(dy) > 120) ? 1 : f;
     p.x = p.px = pa[j] + dx * k; p.y = p.py = pa[j + 1] + dy * k;
-    p.flash = pb[j + 2] ? 1 : 0; p.in.kick = false;
+    p.flash = pb[j + 2] ? 1 : 0;
+    if (i !== NET.you) p.in.kick = false;
   }
   const bdx = b.m.b[0] - a.m.b[0], bdy = b.m.b[1] - a.m.b[1];
   if (Math.abs(bdx) > 120 || Math.abs(bdy) > 120) { G.ball.x = G.ball.px = b.m.b[0]; G.ball.y = G.ball.py = b.m.b[1]; }
@@ -357,10 +408,10 @@ function onlineFrame(now) {
   const snaps = NET.snaps;
   if (ogame && snaps.length) {
     const latest = snaps[snaps.length - 1].T;
-    if (NET.renderT == null) NET.renderT = latest - SERVER_DELAY;
+    if (NET.renderT == null) NET.renderT = latest - NET.delay;
     else {
       NET.renderT += dtf;
-      const err = (latest - SERVER_DELAY) - NET.renderT;
+      const err = (latest - NET.delay) - NET.renderT;
       NET.renderT += clampN(err * 0.08, -dtf * 0.5, dtf);
     }
     const rt = NET.renderT;
@@ -371,20 +422,19 @@ function onlineFrame(now) {
     }
     const span = b.T - a.T, f = span > 0 ? clampN((rt - a.T) / span, 0, 1) : 1;
     applySnap(a, b, f);
+
+    /* mi jugador: tantos ticks locales como corresponda (60 por segundo) */
+    if (NET.you >= 0) {
+      PR.acc += dtf;
+      let guard = 0;
+      while (PR.acc >= DT && guard++ < 6) { PR.acc -= DT; localTick(); }
+      if (PR.acc > DT * 6) PR.acc = 0;
+      const me = ogame.players[NET.you];
+      if (me && PR.init) { me.x = me.px = PR.x + PR.ox; me.y = me.py = PR.y + PR.oy; }
+    }
     if (ogame.banner && ogame.banner.t > 0) ogame.banner.t -= dtf / DT;
   }
   if (state === 'playing' || state === 'paused' || state === 'ended') drawGame(ogame, 1, { online: true, ping: NET.rtt });
-
-  /* enviar controles sólo cuando cambian */
-  if (NET.you >= 0) {
-    const i = state === 'playing' ? readInput() : { dx: 0, dy: 0, kick: false };
-    const dx = Math.round(i.dx * 100) / 100, dy = Math.round(i.dy * 100) / 100;
-    const key = dx + ',' + dy + ',' + (i.kick ? 1 : 0);
-    if (key !== NET.lastSent && now - NET.lastSendT > 14) {
-      NET.lastSent = key; NET.lastSendT = now;
-      netSend({ t: 'in', dx, dy, kick: i.kick });
-    }
-  }
 }
 
 function onlineEnd(m) {

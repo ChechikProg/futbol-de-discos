@@ -53,7 +53,14 @@ test/              pruebas (bots, Mundial, servidor, navegador)
 
 Si cambiás algo en `src/`, corré `npm run build` para regenerar `public/index.html`. `npm test` corre las pruebas del Mundial y del servidor.
 
+## Latencia online
+
+- Tu jugador se mueve al instante: el navegador predice su movimiento con la misma física que el servidor y corrige las diferencias de a poco. Con 280 ms de ping medido, el movimiento propio se ve en unos 40 ms.
+- La pelota y los demás jugadores se ven con el retraso real de la conexión. Cuanto más cerca esté el servidor, mejor se siente el juego.
+- Render no tiene región en Sudamérica. `render.yaml` usa **Virginia**, que suele ser la más cercana a Argentina. Render no permite cambiar la región de un servicio ya creado: hay que borrarlo y crear otro (New → Blueprint).
+- Para probar con ping simulado: `node test/lag.js` (agrega 140 ms por sentido; se cambia con `DELAY=100`).
+
 ## Límites conocidos
 
-- El movimiento online depende de la distancia al servidor. No hay predicción local, así que con más de 150 ms de ping se nota el retardo.
+- Los toques a la pelota se ven con el retraso de la conexión, porque la pelota la decide el servidor.
 - Las medidas de la física son una aproximación de la cancha clásica de HaxBall, no una copia exacta.

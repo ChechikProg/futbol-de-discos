@@ -82,12 +82,12 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   await sa && await A.wait(m => m.t === 's', 4000, 'primer snapshot');
   const first = A.last('s');
-  assert.strictEqual(first.p.length, 6);
+  assert.strictEqual(first.p.length, 12);
   assert.strictEqual(first.f, 'k');
 
   // A (rojo, a la izquierda) corre a la derecha y patea: la pelota tiene que moverse
-  A.send({ t: 'in', dx: 1, dy: 0, kick: true });
-  B.send({ t: 'in', dx: -5, dy: 99, kick: 'x' }); // valores raros se acotan
+  let seq = 0;
+  const feed = setInterval(() => { seq++; A.send({ t: 'in', dx: 1, dy: 0, kick: true, s: seq }); B.send({ t: 'in', dx: -5, dy: 99, kick: 'x', s: seq }); }, 25); // valores raros se acotan
   await A.wait(m => m.t === 's' && m.f === 'p', 6000, 'pelota en juego');
   const mid = A.last('s');
   assert(Math.abs(mid.b[0]) > 1 || mid.f === 'p', 'la pelota se mueve');
@@ -99,12 +99,22 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   // los snapshots llegan ~30 por segundo
   const t0 = A.msgs.filter(m => m.t === 's').length; await sleep(1000);
   const rate = A.msgs.filter(m => m.t === 's').length - t0;
-  assert(rate >= 20 && rate <= 40, 'tasa de snapshots ' + rate);
+  assert(rate >= 50 && rate <= 70, 'tasa de snapshots ' + rate);
   console.log('snapshots/seg:', rate);
 
   // el espectador se suma a un equipo en pleno juego tomando el lugar de un bot si lo hay (acá no hay bots)
   S.send({ t: 'team', team: 1 });
   await S.wait(m => m.t === 'err', 1500, 'sin lugar');
+
+  // el servidor devuelve el número de la última entrada recibida
+  const ack = A.last('s').p[5];
+  assert(ack > 5, 'ack de entradas ' + ack);
+
+  // si dejan de mandar controles, el jugador se frena solo
+  clearInterval(feed);
+  await sleep(700);
+  const g0 = rooms.get(room.code).game.players[0];
+  assert(g0.in.dx === 0 && !g0.in.kick, 'sin controles el jugador se frena');
 
   // B se va en pleno partido: queda un bot en su lugar y el partido sigue
   B.send({ t: 'leave' });

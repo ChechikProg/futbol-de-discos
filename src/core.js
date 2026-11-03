@@ -157,6 +157,47 @@ function collideSeg(d, s) {
   return 0;
 }
 
+/* Límites de movimiento de un jugador (los usa step() y la predicción del cliente) */
+function clampPlayerBox(geo, p) {
+  const bx = geo.boxW - C.playerR, by = geo.boxH - C.playerR;
+  if (p.x > bx) { p.x = bx; if (p.vx > 0) p.vx *= -0.1; }
+  if (p.x < -bx) { p.x = -bx; if (p.vx < 0) p.vx *= -0.1; }
+  if (p.y > by) { p.y = by; if (p.vy > 0) p.vy *= -0.1; }
+  if (p.y < -by) { p.y = -by; if (p.vy < 0) p.vy *= -0.1; }
+}
+
+function kickoffLimit(G, p) {
+  if (p.team === 0 && p.x > -p.r) { p.x = -p.r; if (p.vx > 0) p.vx = 0; }
+  if (p.team === 1 && p.x < p.r) { p.x = p.r; if (p.vx < 0) p.vx = 0; }
+  if (p.team !== G.kickTeam) {
+    const d = Math.hypot(p.x, p.y), lim = G.geo.kr + p.r;
+    if (d < lim) {
+      if (d < 0.001) { p.x = (p.team === 0 ? -1 : 1) * lim; p.y = 0; }
+      else {
+        const k = lim / d, ux = p.x / d, uy = p.y / d;
+        p.x *= k; p.y *= k;
+        const vr = p.vx * ux + p.vy * uy;
+        if (vr < 0) { p.vx -= vr * ux; p.vy -= vr * uy; }
+      }
+    }
+  }
+}
+
+/* Un tick de un jugador humano solo contra las paredes y los postes (sin pelota ni otros jugadores).
+   El cliente lo usa para mover a su propio jugador sin esperar al servidor. */
+function predictPlayer(G, S, inp) {
+  let dx = inp.dx, dy = inp.dy;
+  const m = Math.hypot(dx, dy);
+  if (m > 1) { dx /= m; dy /= m; }
+  const a = inp.kick ? C.kickAcc : C.acc;
+  S.vx += dx * a; S.vy += dy * a;
+  S.x += S.vx; S.y += S.vy;
+  for (const post of G.posts) discDisc(post, S);
+  clampPlayerBox(G.geo, S);
+  if (G.phase === 'kickoff') kickoffLimit(G, S);
+  S.vx *= C.pDamp; S.vy *= C.pDamp;
+}
+
 function step(G) {
   if (G.over) return;
   G.tick++;
@@ -197,32 +238,8 @@ function step(G) {
   }
   for (const s of geo.segs) if (collideSeg(ball, s) > 2.5) ev(G, 'wall');
 
-  const bx = geo.boxW - C.playerR, by = geo.boxH - C.playerR;
-  for (const p of P) {
-    if (p.x > bx) { p.x = bx; if (p.vx > 0) p.vx *= -0.1; }
-    if (p.x < -bx) { p.x = -bx; if (p.vx < 0) p.vx *= -0.1; }
-    if (p.y > by) { p.y = by; if (p.vy > 0) p.vy *= -0.1; }
-    if (p.y < -by) { p.y = -by; if (p.vy < 0) p.vy *= -0.1; }
-  }
-
-  if (G.phase === 'kickoff') {
-    for (const p of P) {
-      if (p.team === 0 && p.x > -p.r) { p.x = -p.r; if (p.vx > 0) p.vx = 0; }
-      if (p.team === 1 && p.x < p.r) { p.x = p.r; if (p.vx < 0) p.vx = 0; }
-      if (p.team !== G.kickTeam) {
-        const d = Math.hypot(p.x, p.y), lim = geo.kr + p.r;
-        if (d < lim) {
-          if (d < 0.001) { p.x = (p.team === 0 ? -1 : 1) * lim; p.y = 0; }
-          else {
-            const k = lim / d, ux = p.x / d, uy = p.y / d;
-            p.x *= k; p.y *= k;
-            const vr = p.vx * ux + p.vy * uy;
-            if (vr < 0) { p.vx -= vr * ux; p.vy -= vr * uy; }
-          }
-        }
-      }
-    }
-  }
+  for (const p of P) clampPlayerBox(geo, p);
+  if (G.phase === 'kickoff') for (const p of P) kickoffLimit(G, p);
 
   for (const p of P) { p.vx *= C.pDamp; p.vy *= C.pDamp; }
   ball.vx *= C.bDamp; ball.vy *= C.bDamp;

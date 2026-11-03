@@ -35,6 +35,8 @@ const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const cleanName = s => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, 16);
 const cleanText = s => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, 140);
 const r1 = v => Math.round(v * 10) / 10;
+const r3 = v => Math.round(v * 1000) / 1000;
+const INPUT_TIMEOUT = 400; // ms sin recibir controles: el jugador se frena
 
 const DEFAULT_CFG = { size: 2, pitch: { preset: 'classic' }, time: 3, goals: 5, bots: true, diff: 'normal' };
 
@@ -117,6 +119,7 @@ function takeBotSlot(room, client, team) {
   const bot = G.players.find(p => p.team === team && !p.human);
   if (!bot) return false;
   bot.human = true; bot.cid = client.id; bot.name = client.name; bot.in = { dx: 0, dy: 0, kick: false };
+  bot.seq = 0; bot.lastIn = performance.now();
   return true;
 }
 function freeSlot(room, client) {
@@ -137,7 +140,7 @@ function startGame(room) {
     size: cfg.size, roster, diff: cfg.diff, humanTeam: -1, timeLimit: cfg.time, scoreLimit: cfg.goals,
     pitch: resolvePitch(cfg.pitch), allowDraw: false
   });
-  G.players.forEach((p, i) => { p.cid = cids[i]; });
+  G.players.forEach((p, i) => { p.cid = cids[i]; p.seq = 0; p.lastIn = performance.now() + 1500; });
   room.game = G; room.phase = 'play'; room.acc = 0; room.evq = []; room.sentTick = -9;
   room.startAt = performance.now() + 1500; room.last = room.startAt;
   const pitch = resolvePitch(cfg.pitch);
@@ -153,8 +156,9 @@ function startGame(room) {
 }
 
 function snapshot(room, G) {
+  /* por jugador: x, y, patada, vx, vy y el número de la última entrada recibida (para la predicción del cliente) */
   const p = [];
-  for (const q of G.players) p.push(r1(q.x), r1(q.y), ((q.in.kick && q.armed) || q.flash > 0) ? 1 : 0);
+  for (const q of G.players) p.push(r1(q.x), r1(q.y), ((q.in.kick && q.armed) || q.flash > 0) ? 1 : 0, r3(q.vx), r3(q.vy), q.seq | 0);
   const s = {
     t: 's', k: G.tick, sc: G.score, f: G.phase === 'play' ? 'p' : G.phase === 'goal' ? 'g' : 'k',
     m: G.playTicks, o: G.overtime ? 1 : 0, b: [r1(G.ball.x), r1(G.ball.y)], p
@@ -180,6 +184,9 @@ function tickRooms(now) {
     if (room.phase !== 'play' || !G) continue;
     if (now < room.startAt) { room.last = now; continue; }
     room.acc += Math.min(now - room.last, 100); room.last = now;
+    for (const p of G.players) {
+      if (p.human && p.cid && now - p.lastIn > INPUT_TIMEOUT) { p.in.dx = 0; p.in.dy = 0; p.in.kick = false; }
+    }
     let stepped = 0;
     while (room.acc >= DT && !G.over) {
       step(G); room.acc -= DT; stepped++;
@@ -187,7 +194,7 @@ function tickRooms(now) {
       G.events.length = 0;
     }
     if (!stepped) continue;
-    if (G.tick - room.sentTick >= 2 || G.over || room.evq.length) {
+    if (G.tick - room.sentTick >= 1 || G.over || room.evq.length) { // 60 snapshots por segundo
       broadcast(room, snapshot(room, G));
       room.sentTick = G.tick;
     }
@@ -304,6 +311,7 @@ function handle(client, msg) {
       const p = slotOf(room, client);
       if (!p) return;
       p.in.dx = clamp(+msg.dx || 0, -1, 1); p.in.dy = clamp(+msg.dy || 0, -1, 1); p.in.kick = !!msg.kick;
+      p.seq = (+msg.s || 0) | 0; p.lastIn = performance.now();
       break;
     }
     case 'chat': {

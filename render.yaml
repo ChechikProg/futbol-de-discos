@@ -3,6 +3,7 @@ services:
     name: futbol-de-discos
     runtime: node
     plan: free
+    region: virginia
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /healthz
