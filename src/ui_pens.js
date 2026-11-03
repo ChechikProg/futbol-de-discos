@@ -3,9 +3,9 @@
    El que patea arranca atrás de la pelota, corre y le pega. El arquero se mueve dentro de su área. */
 const PK = { cur: null };
 
-/* o: { names:[tú, rival], kits:[color tú, color rival], diff, onDone({u, c, first}) } */
+/* o: { names:[tú, rival], kits:[color tú, color rival], diff, first?: 'u'|'c', onDone({u, c, first}) } */
 function startPenalties(o) {
-  const S = PEN.create(Math.random() < 0.5 ? 'u' : 'c');
+  const S = PEN.create(o.first === 'u' || o.first === 'c' ? o.first : (Math.random() < 0.5 ? 'u' : 'c'));
   PK.cur = { S, o, kick: null, who: null, phase: 'intro', t: 0, acc: 0, last: performance.now(), msg: '', good: false, done: false };
   nextPenalty(PK.cur);
   mode = 'pens'; view = null;

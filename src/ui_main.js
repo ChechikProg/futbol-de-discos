@@ -1,6 +1,6 @@
 'use strict';
 /* ===== Inicio, partido contra la máquina y arranque ===== */
-const LOCAL = Object.assign({ size: '1', diff: 'normal', side: '0', time: '3', goals: '3', pitch: { preset: 'classic' } }, store.get('local', {}));
+const LOCAL = Object.assign({ size: '1', diff: 'normal', side: '0', time: '3', goals: '3', penFirst: 'r', pitch: { preset: 'classic' } }, store.get('local', {}));
 LOCAL.pitch = pitchValid(LOCAL.pitch);
 const saveLocal = () => store.set('local', LOCAL);
 
@@ -60,9 +60,45 @@ function localOver() {
   } else done(null);
 }
 
+/* ---------- Probar penales (práctica suelta) ---------- */
+const PEN_GROUPS = [
+  LOCAL_GROUPS[1],
+  { key: 'penFirst', label: 'Quién empieza', opts: [['r', 'Al azar'], ['u', 'Empiezo pateando'], ['c', 'Empiezo atajando']] }
+];
+
+function startPenTest() {
+  saveLocal();
+  startPenalties({
+    names: ['Vos', 'La máquina'], kits: KIT_DEFAULT, diff: LOCAL.diff, first: LOCAL.penFirst,
+    onDone: pen => {
+      showEnd({
+        title: pen.u > pen.c ? '¡Ganaste!' : 'Perdiste', res: pen.u > pen.c ? 'win' : 'lose', score: pen ? [pen.u, pen.c] : null, colors: KIT_DEFAULT,
+        meta: 'Práctica de penales · ' + DIFF[LOCAL.diff].label,
+        buttons: [
+          { text: 'Otra tanda', go: true, fn: startPenTest },
+          { text: 'Cambiar opciones', fn: () => { setState('idle'); buildPenTest(); showScreen('pentest'); } },
+          { text: 'Inicio', fn: () => { setState('idle'); showScreen('home'); } }
+        ]
+      });
+    }
+  });
+}
+
+function buildPenTest() {
+  const s = SCREENS.pentest, c = card();
+  clearEl(s); s.append(c);
+  c.append(topbar('Probar penales', () => showScreen('home'), 'Inicio'));
+  c.append(h('p', { class: 'sub', text: 'Una tanda suelta para practicar: cinco tiros cada uno y muerte súbita si siguen empatados.' }));
+  const grid = h('div', { class: 'groups' });
+  for (const def of PEN_GROUPS) grid.append(segGroup('pt', def, LOCAL, saveLocal));
+  c.append(grid);
+  c.append(h('button', { class: 'btn go', type: 'button', text: 'Jugar penales', onclick: startPenTest }));
+}
+
 /* ---------- Pantallas ---------- */
 const ICONS = {
   bot: '<svg viewBox="0 0 64 40" aria-hidden="true"><circle cx="14" cy="20" r="11" fill="#e56e56" stroke="#101412" stroke-width="3"/><circle cx="50" cy="20" r="11" fill="#5689e5" stroke="#101412" stroke-width="3"/><circle cx="32" cy="20" r="5" fill="#fff" stroke="#101412" stroke-width="2.5"/></svg>',
+  pen: '<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M8 36V8h48v28" fill="none" stroke="#c7e6bd" stroke-width="3" stroke-linejoin="round"/><circle cx="32" cy="26" r="7" fill="#e56e56" stroke="#101412" stroke-width="3"/><circle cx="46" cy="34" r="4" fill="#fff" stroke="#101412" stroke-width="2"/></svg>',
   cup: '<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M22 4h20v10c0 8-4 12-10 12s-10-4-10-12z" fill="#e8c14a" stroke="#101412" stroke-width="3" stroke-linejoin="round"/><path d="M22 7h-8c0 8 3 11 8 12M42 7h8c0 8-3 11-8 12" fill="none" stroke="#e8c14a" stroke-width="3" stroke-linecap="round"/><path d="M32 26v6M24 36h16" stroke="#e8c14a" stroke-width="4" stroke-linecap="round"/></svg>'
 };
 
@@ -80,7 +116,8 @@ function buildHome() {
   c.append(h('div', { class: 'brand' }, logo, h('div', null, h('h1', { text: 'Fútbol de Discos' }), h('p', { class: 'sub', text: 'Elegí cómo querés jugar.' }))));
   c.append(h('div', { class: 'modes' },
     modeCard(ICONS.bot, 'Contra la máquina', '1v1, 2v2 o 3v3 con cuatro dificultades y cancha a medida.', () => { buildLocal(); showScreen('local'); }),
-    modeCard(ICONS.cup, 'Mundial', 'Elegí un país, jugá grupos y llaves hasta la final.', () => { buildWcSetup(); showScreen('wcsetup'); })));
+    modeCard(ICONS.cup, 'Mundial', 'Elegí un país, jugá grupos y llaves hasta la final.', () => { buildWcSetup(); showScreen('wcsetup'); }),
+    modeCard(ICONS.pen, 'Probar penales', 'Una tanda suelta para practicar tiros y atajadas.', () => { buildPenTest(); showScreen('pentest'); })));
   c.append(h('details', { class: 'keys' },
     h('summary', { text: 'Controles' }),
     h('div', null, h('b', { text: 'Mover' }), h('kbd', { text: 'W' }), h('kbd', { text: 'A' }), h('kbd', { text: 'S' }), h('kbd', { text: 'D' }), ' o flechas'),
@@ -103,7 +140,7 @@ function buildLocal() {
 
 /* ---------- Arranque ---------- */
 function init() {
-  mkScreen('home'); mkScreen('local');
+  mkScreen('home'); mkScreen('local'); mkScreen('pentest');
   mkScreen('pause', 'overlay').append(card('small'));
   mkScreen('end', 'overlay').append(card('small'));
   initWc();

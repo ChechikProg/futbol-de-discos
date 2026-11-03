@@ -41,7 +41,7 @@ async function playShootout(page, tag) {
   await page.waitForSelector('.mode');
   const modes = await page.$$eval('.mode .mode-t', els => els.map(e => e.textContent));
   console.log('modos:', modes.join(' | '));
-  if (modes.length !== 2 || modes.some(m => /online/i.test(m))) errors.push('el inicio debería tener solo 2 modos: ' + modes);
+  if (modes.length !== 3 || modes.some(m => /online/i.test(m)) || !modes.includes('Probar penales')) errors.push('el inicio debería tener 3 modos sin online: ' + modes);
 
   // --- partido suelto empatado: gol de oro y después penales ---
   await page.click('.mode >> nth=0');
@@ -85,6 +85,19 @@ async function playShootout(page, tag) {
   await page.evaluate(tie(3, 1));
   await page.waitForSelector('#end:not([hidden])', { timeout: 5000 });
   if (await page.evaluate(() => game.overtime)) errors.push('con ganador no debería haber gol de oro');
+  await page.click('#end .btn >> text=Inicio');
+
+  // --- práctica de penales desde el inicio ---
+  await page.click('.mode >> nth=2');
+  await page.click('label[for="pt-penFirst-c"]');
+  await page.click('#pentest .btn.go');
+  await page.waitForFunction(() => PK.cur && PK.cur.S.first === 'c' && PK.cur.who === 'c', null, { timeout: 5000 });
+  const r3 = await playShootout(page, 'practica');
+  await page.click('#pens .btn');
+  await page.waitForSelector('#end:not([hidden])', { timeout: 5000 });
+  const end4 = await page.evaluate(() => ({ title: document.getElementById('endTitle').textContent, meta: document.getElementById('endMeta').textContent }));
+  console.log('fin práctica:', JSON.stringify(end4));
+  if (!/Práctica/.test(end4.meta) || (r3.nums[0] > r3.nums[1]) !== /Ganaste/.test(end4.title)) errors.push('resultado de la práctica incorrecto');
   await page.click('#end .btn >> text=Inicio');
 
   // --- Mundial ---
