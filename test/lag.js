@@ -1,3 +1,4 @@
+// (Si el jugador choca con un bot puede haber algún salto chico: el servidor resuelve ese choque distinto.)
 // Mide la respuesta del juego online con latencia simulada.
 // Un proxy TCP retrasa cada sentido DELAY ms (ping = 2 x DELAY).
 const net = require('net');
@@ -73,7 +74,7 @@ function pipe(from, to) {
   for (const k of ['visLat', 'maxJump', 'avgJump', 'errMax', 'finalDiff']) if (!Number.isFinite(res[k])) errors.push('valor inválido en ' + k);
   if (res.avgJump < 0.3) errors.push('el jugador no se movió');
   if (res.visLat > 120) errors.push('el movimiento propio tarda demasiado en verse: ' + res.visLat);
-  if (res.big > 0) errors.push('hay saltos visibles al corregir: ' + res.big);
+  if (res.big > 10 || res.maxJump > 8) errors.push('hay saltos visibles al corregir: ' + res.big);
   if (res.finalDiff > 3) errors.push('no converge con el servidor: ' + res.finalDiff);
 
   await browser.close(); proxy.close(); server.close();

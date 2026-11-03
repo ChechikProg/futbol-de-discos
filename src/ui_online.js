@@ -360,7 +360,7 @@ function solids(arr) {
   ogame.players.forEach((p, i) => {
     if (i === NET.you) return;
     const j = i * PSTRIDE;
-    out.push({ x: arr ? arr[j] : p.x, y: arr ? arr[j + 1] : p.y, vx: 0, vy: 0, r: p.r, invMass: 0, bCoef: p.bCoef });
+    out.push({ x: arr ? arr[j] : p.x, y: arr ? arr[j + 1] : p.y, vx: 0, vy: 0, r: p.r, invMass: p.invMass, bCoef: p.bCoef });
   });
   return out;
 }
