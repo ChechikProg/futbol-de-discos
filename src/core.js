@@ -199,7 +199,7 @@ function step(G) {
     if (m > 1) { dx /= m; dy /= m; }
     const a = (inp.kick ? C.kickAcc : C.acc) * (p.human ? 1 : p.diff.speed) * (p.accMul || 1);
     p.vx += dx * a; p.vy += dy * a;
-    if (inp.kick) {
+    if (inp.kick && !p.noKick && !p.noBall) {
       if (p.armed) {
         const ddx = ball.x - p.x, ddy = ball.y - p.y, d = Math.hypot(ddx, ddy);
         if (d > 0 && d - p.r - ball.r < C.kickRange) {
@@ -216,7 +216,7 @@ function step(G) {
   ball.x += ball.vx; ball.y += ball.vy;
 
   for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) discDisc(P[i], P[j]);
-  for (const p of P) if (discDisc(p, ball)) touchBall(G, p);
+  for (const p of P) if (!p.noBall && discDisc(p, ball)) touchBall(G, p);
   for (const post of G.posts) {
     for (const p of P) discDisc(post, p);
     if (discDisc(post, ball) > 1.5) ev(G, 'wall');

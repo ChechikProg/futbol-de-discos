@@ -39,7 +39,7 @@ const mk = diff => PEN.newKick({ diff, kits: kit, names: ['A', 'B'] });
 {
   const Kk = mk('normal'), W = Kk.G.geo.W;
   assert.strictEqual(Math.round(Kk.G.ball.x), W - PEN.SPOT); assert(Kk.G.players[0].x < Kk.G.ball.x - 60, 'el pateador arranca atrás');
-  assert(Math.abs(Kk.G.players[1].x - (W - 28)) < 1 && Kk.G.players[1].y === 0, 'el arquero arranca en el arco');
+  assert(Math.abs(Kk.G.players[1].x - (W - 24)) < 1 && Kk.G.players[1].y === 0, 'el arquero arranca en el arco');
 }
 // pateador de la máquina contra un arquero quieto: casi siempre es gol
 for (const [d, min] of [['easy', 0.65], ['normal', 0.85], ['expert', 0.92]]) {
@@ -75,6 +75,26 @@ for (const [d, min] of [['easy', 0.65], ['normal', 0.85], ['expert', 0.92]]) {
   assert(G.players[1].y >= -(gh - 10) - 0.01 && G.players[1].x <= W - PEN.KEEPER.x1 + 0.01, 'arquero acotado');
   for (let i = 0; i < 300; i++) PEN.tick(Kk, idle, { dx: -1, dy: 1, kick: false });
   assert(G.players[1].y <= gh - 10 + 0.01 && G.players[1].x >= W - PEN.KEEPER.x0 - 0.01, 'arquero acotado');
+}
+// un solo toque: después del tiro el que patea no puede volver a tocar la pelota ni patear
+{
+  const Kk = mk('normal'); Kk.ai.wait = 5; const G = Kk.G, sh = G.players[0], gk = G.players[1];
+  let g = 0; while (Kk.shotTick == null && g++ < 900) PEN.tick(Kk, PEN.aiShooter(Kk), idle);
+  assert(Kk.shotTick != null && sh.noBall, 'el primer toque es el tiro');
+  G.ball.x = sh.x + 8; G.ball.y = sh.y; G.ball.vx = G.ball.vy = 0;
+  for (let i = 0; i < 5; i++) PEN.tick(Kk, { dx: 1, dy: 0, kick: true }, idle);
+  assert(Math.hypot(G.ball.vx, G.ball.vy) < 0.05, 'el pateador no puede tocarla de nuevo: ' + Math.hypot(G.ball.vx, G.ball.vy));
+  for (let i = 0; i < 90; i++) PEN.tick(Kk, { dx: 1, dy: 0, kick: true }, idle);
+  assert(Math.abs(sh.vx) < 0.2 && Math.abs(sh.vy) < 0.2, 'queda quieto después del tiro');
+}
+// el arquero no puede adelantarse ni patear
+{
+  const Kk = mk('normal'), G = Kk.G, W = G.geo.W, gk = G.players[1];
+  for (let i = 0; i < 300; i++) PEN.tick(Kk, idle, { dx: -1, dy: 0, kick: false });
+  assert(gk.x >= W - PEN.KEEPER.x0 - 0.01 && W - gk.x <= 36, 'no se adelanta: ' + (W - gk.x));
+  const K2 = mk('normal'), g2 = K2.G; g2.ball.x = g2.players[1].x - 24; g2.ball.y = g2.players[1].y; g2.ball.vx = g2.ball.vy = 0;
+  PEN.tick(K2, idle, { dx: 0, dy: 0, kick: true });
+  assert(Math.hypot(g2.ball.vx, g2.ball.vy) < 1, 'el arquero no patea: ' + Math.hypot(g2.ball.vx, g2.ball.vy));
 }
 // una tanda completa máquina contra máquina termina bien
 for (const d of ['easy', 'normal', 'hard', 'expert']) {

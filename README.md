@@ -4,7 +4,7 @@ Fútbol de discos al estilo HaxBall en el navegador. Se juega solo, sin servidor
 
 - **Contra la máquina**: 1v1, 2v2 o 3v3, cuatro dificultades, cancha a elegir (chica, clásica, grande, enorme o personalizada).
 - **Mundial**: elegís una selección, se sortean los grupos y jugás hasta la final. Formato de 48 selecciones (12 grupos, pasan los mejores terceros) o de 32. Perder en eliminación directa te saca del torneo. La dificultad de los rivales es configurable e incluye un modo progresivo.
-- **Gol de oro y penales**: si un partido termina empatado, se juega un gol de oro de 1 minuto (el primero que convierte gana). Si nadie convierte, se define por penales al estilo del mapa de penales de HaxBall: la pelota está en el punto penal, el que patea arranca atrás, corre y le pega con la física del juego, y el arquero (un disco limitado a su área) trata de taparla. Son cinco tiros cada uno y, si siguen igualados, muerte súbita.
+- **Gol de oro y penales**: si un partido termina empatado, se juega un gol de oro de 1 minuto (el primero que convierte gana). Si nadie convierte, se define por penales al estilo del mapa de penales de HaxBall: la pelota está en el punto penal, el que patea arranca atrás, corre y le pega con la física del juego, y el arquero (un disco pegado a la línea, que no puede adelantarse ni patear) trata de taparla. El que patea tiene un solo toque: después del primer contacto con la pelota queda quieto y ya no puede tocarla. Son cinco tiros cada uno y, si siguen igualados, muerte súbita.
   En el Mundial, la fase de grupos admite empates como siempre: ni gol de oro ni penales. Solo se juegan en las llaves.
 
 Las selecciones, las valoraciones y el sorteo son de fantasía. No usan ranking oficial ni nombres de jugadores.

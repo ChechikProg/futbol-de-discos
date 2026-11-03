@@ -8,7 +8,7 @@ const PEN = (() => {
   const SPOT = 150;          // distancia del punto penal a la línea de gol
   const RUN = 95;            // cuánto detrás de la pelota arranca el que patea
   const AIM_TICKS = 600;     // tiempo para patear (10 s)
-  const KEEPER = { acc: 2.2, damp: 0.9, x0: 62, x1: 18, edge: 10 };   // arquero más ágil que un jugador común, como en el mapa
+  const KEEPER = { acc: 2.2, damp: 0.9, x0: 34, x1: 14, edge: 14 };   // arquero pegado a la línea (no puede adelantarse), más ágil que un jugador común
   const REACT = { easy: 26, normal: 18, hard: 16, expert: 14 };
   const AIMBAND = { easy: [0.3, 0.7], normal: [0.45, 0.8], hard: [0.6, 0.84], expert: [0.7, 0.84] };   // qué tan cerca del palo patea la máquina          // ticks que tarda el arquero en reaccionar al tiro
   const AIMERR = { easy: 0.32, normal: 0.16, hard: 0.08, expert: 0.03 };
@@ -44,7 +44,7 @@ const PEN = (() => {
     G.phase = 'play'; G.kickTeam = 0;
     G.ball.x = G.ball.px = W - SPOT; G.ball.y = G.ball.py = 0; G.ball.vx = G.ball.vy = 0;
     sh.x = sh.px = W - SPOT - RUN; sh.y = sh.py = 0;
-    gk.x = gk.px = W - 28; gk.y = gk.py = 0; gk.accMul = KEEPER.acc; gk.damp = KEEPER.damp;
+    gk.x = gk.px = W - 24; gk.y = gk.py = 0; gk.accMul = KEEPER.acc; gk.damp = KEEPER.damp; gk.noKick = true;   // el arquero ataja, no patea
     const err = AIMERR[o.diff] != null ? AIMERR[o.diff] : 0.28;
     const side = Math.random() < 0.5 ? -1 : 1, band = AIMBAND[o.diff] || AIMBAND.normal;
     return {
@@ -61,14 +61,13 @@ const PEN = (() => {
   /* controles de la máquina como arquero */
   function aiKeeper(Kk) {
     const G = Kk.G, gk = G.players[1], b = G.ball, W = G.geo.W, gh = G.geo.gh, a = Kk.ai;
-    let ty = 0, tx = W - 28;
+    let ty = 0, tx = W - 24;
     if (Kk.shotTick != null && Kk.ticks - Kk.shotTick >= a.react) {
       const cr = K.predictCross(G, W, -1);
       if (cr) ty = cr.y + a.noise;
       else if (Math.abs(b.vx) > 0.3 && b.vx < 0) ty = gk.y * 0.9;      // el tiro se aleja o va al costado
       else ty = Math.max(-gh, Math.min(gh, b.y));
       if (a.guess && cr) ty = -Math.sign(cr.y || 1) * Math.abs(ty);     // se tiró para el lado equivocado
-      if (b.x > W - 70 && Math.hypot(b.vx, b.vy) < 1.2) tx = Math.max(W - 62, b.x + 14);  // salir a cortar una pelota lenta
     } else if (Kk.shotTick == null) ty = Math.sin(Kk.ticks / 28) * 7;   // se mueve un poco esperando
     ty = Math.max(-(gh - KEEPER.edge), Math.min(gh - KEEPER.edge, ty));
     const dy = (ty - gk.y) / 10 - gk.vy * 0.35, dx = (tx - gk.x) / 10 - gk.vx * 0.35;
@@ -102,18 +101,22 @@ const PEN = (() => {
     }
     const G = Kk.G, sh = G.players[0], gk = G.players[1], b = G.ball, W = G.geo.W, gh = G.geo.gh;
     const clamp1 = v => Math.max(-1, Math.min(1, +v || 0));
-    sh.in.dx = clamp1(inS.dx); sh.in.dy = clamp1(inS.dy); sh.in.kick = !!inS.kick;
+    const taken = Kk.shotTick != null;     // después del tiro el que patea queda quieto y no puede volver a tocar la pelota
+    sh.in.dx = taken ? 0 : clamp1(inS.dx); sh.in.dy = taken ? 0 : clamp1(inS.dy); sh.in.kick = taken ? false : !!inS.kick;
     gk.in.dx = clamp1(inK.dx); gk.in.dy = clamp1(inK.dy); gk.in.kick = !!inK.kick;
     K.step(G);
     Kk.ticks++;
     for (const e of G.events.splice(0)) Kk.events.push(e);
-    /* el arquero no sale de su área */
+    /* un solo toque: el primer contacto con la pelota es el tiro */
+    if (G.lastTouch === sh) sh.noBall = true;
+    if (sh.x > W - SPOT + 10) { sh.x = W - SPOT + 10; if (sh.vx > 0) sh.vx = 0; }   // no puede pasar la línea de la pelota
+    /* el arquero no sale de su zona */
     const ylim = gh - KEEPER.edge, xmin = W - KEEPER.x0, xmax = W - KEEPER.x1;
     if (gk.y > ylim) { gk.y = ylim; if (gk.vy > 0) gk.vy = 0; } if (gk.y < -ylim) { gk.y = -ylim; if (gk.vy < 0) gk.vy = 0; }
     if (gk.x > xmax) { gk.x = xmax; if (gk.vx > 0) gk.vx = 0; } if (gk.x < xmin) { gk.x = xmin; if (gk.vx < 0) gk.vx = 0; }
 
     if (Kk.shotTick == null) {
-      if (Kk.events.includes('kick') || Math.hypot(b.x - (W - SPOT), b.y) > 22) Kk.shotTick = Kk.ticks;
+      if (sh.noBall || Math.hypot(b.x - (W - SPOT), b.y) > 22) Kk.shotTick = Kk.ticks;
       else if (Kk.ticks > AIM_TICKS) { Kk.result = 'miss'; Kk.reason = 'tiempo'; }
       return;
     }

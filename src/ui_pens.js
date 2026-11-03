@@ -139,6 +139,7 @@ function drawPen(P, alpha) {
   const labels = [];
   for (const p of G.players) {
     const x = ix(p), y = iy(p), fill = kitOf(G, p.team);
+    g2.globalAlpha = p.noBall ? 0.45 : 1;      // el que ya pateó queda "fantasma": no puede volver a tocar la pelota
     g2.beginPath(); g2.arc(x, y, p.r, 0, TAU); g2.fillStyle = fill; g2.fill();
     const hot = p.flash > 0;
     g2.lineWidth = hot ? 3.2 : 2.4; g2.strokeStyle = hot ? '#fff' : COL.ink; g2.stroke();
@@ -146,6 +147,7 @@ function drawPen(P, alpha) {
       g2.beginPath(); g2.moveTo(x - 6, y - p.r - 11); g2.lineTo(x + 6, y - p.r - 11); g2.lineTo(x, y - p.r - 3); g2.closePath();
       g2.fillStyle = '#fff'; g2.fill(); g2.lineWidth = 1.5; g2.strokeStyle = COL.ink; g2.stroke();
     }
+    g2.globalAlpha = 1;
     labels.push({ x: VW / 2 + (x - cx) * sc, y: top + ah / 2 + (y + p.r) * sc, name: p.name, me: p.me });
   }
   g2.restore();
@@ -195,8 +197,8 @@ function drawPenHud(P) {
   }
   const live = P.phase === 'live' && P.kick.shotTick == null;
   let hint = P.who === 'u'
-    ? (isTouch ? 'Corré hacia la pelota y tocá PATEAR' : 'Corré hacia la pelota y pateala (X o Espacio)')
-    : (isTouch ? 'Atajá: movete por tu línea con el joystick' : 'Atajá: movete por tu línea (flechas o WASD)');
+    ? (isTouch ? 'Corré y tocá PATEAR: tenés un solo toque' : 'Corré y pateala: tenés un solo toque (X o Espacio)')
+    : (isTouch ? 'Atajá: solo te movés sobre la línea del arco' : 'Atajá: solo te movés sobre la línea del arco');
   if (sudden && VW <= 640) hint = 'Muerte súbita · ' + hint;
   g2.font = '600 14px ' + BODY; g2.fillStyle = 'rgba(233,240,234,.85)';
   g2.fillText(hint, VW / 2, 96);
