@@ -39,10 +39,30 @@ Otras opciones que funcionan igual: Railway y Fly.io (`fly launch`). El servidor
 
 Variable opcional: `ALLOWED_ORIGIN` (por ejemplo `miSitio.com`). Si la definís, el servidor solo acepta conexiones de páginas de ese dominio.
 
+## Publicarlo en Cloudflare (gratis, servidor en Sudamérica)
+
+Es una segunda forma de publicar el mismo juego. Render sigue funcionando igual con `render.yaml`.
+
+1. Creá una cuenta gratis en cloudflare.com (no pide tarjeta).
+2. En esta carpeta: `npm run cf:deploy`. La primera vez abre el navegador para que inicies sesión con tu cuenta.
+3. Al terminar te muestra la dirección, tipo `https://futbol-de-discos.TU-USUARIO.workers.dev`.
+
+Cómo funciona: `worker/index.js` crea un único servidor de salas (Durable Object) con la pista de ubicación `sam` (Sudamérica), y `public/` lo sirve Cloudflare. La lógica de las salas es la misma que usa `server.js` (`src/hub.js`).
+
+Para probarlo en tu computadora: `npm run cf:dev` y, en otra terminal, `node test/worker.js`.
+
+Límites del plan gratis de Cloudflare:
+
+- 100.000 pedidos por día. Cada 20 mensajes que manda un jugador cuentan como 1 pedido, y un jugador manda 60 por segundo: alcanza para unas 9 horas de jugador por día (4 horas y media con dos jugadores). Al pasarse, el online se corta hasta las 00:00 UTC (21:00 de Argentina).
+- 13.000 GB-s de uso por día: unas 28 horas de conexión por día, aunque sea con la pestaña abierta sin jugar.
+- Si querés más, el plan pago de Workers cuesta US$5 por mes.
+
 ## Cómo está armado
 
 ```
-server.js          servidor HTTP + WebSocket (salas, partidas, snapshots a 30 Hz)
+server.js          servidor HTTP + WebSocket para Node/Render
+src/hub.js         salas y partidas online (lo usan server.js y el worker)
+worker/index.js    versión para Cloudflare Workers (wrangler.toml)
 src/core.js        física y bots, compartido por el navegador y el servidor
 src/wc.js          lógica del Mundial (sorteo, grupos, llaves, simulación)
 src/ui_*.js        interfaz

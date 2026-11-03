@@ -1,0 +1,18 @@
+name = "futbol-de-discos"
+main = "worker/index.js"
+compatibility_date = "2025-06-01"
+
+# La página (carpeta public/) la sirve Cloudflare; el Worker atiende solo /ws y /healthz
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/ws", "/healthz"]
+
+[[durable_objects.bindings]]
+name = "HUB"
+class_name = "Hub"
+
+# El plan gratis solo permite Durable Objects con almacenamiento SQLite
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Hub"]

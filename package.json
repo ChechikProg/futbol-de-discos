@@ -6,9 +6,15 @@
   "scripts": {
     "start": "node server.js",
     "build": "node build.js",
-    "test": "node test/wc.js && node test/server.js"
+    "test": "node test/wc.js && node test/server.js",
+    "cf:dev": "npx wrangler@4 dev --local --port 8790",
+    "cf:deploy": "node build.js && npx wrangler@4 deploy"
   },
-  "engines": { "node": ">=18" },
-  "dependencies": { "ws": "^8.18.0" },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
   "license": "MIT"
 }

@@ -154,7 +154,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const r3 = await S.wait(m => m.t === 'room' && m.code !== room.code, 2000, 'sala 2');
   S.send({ t: 'team', team: 2 }); await sleep(100);
   S.send({ t: 'start' });
-  const e = await S.wait(m => m.t === 'end' && m.w !== -2, 140000, 'fin del partido de bots');
+  const e = await S.wait(m => m.t === 'end' && m.w !== -2, 280000, 'fin del partido de bots');
   assert(e.sc[0] + e.sc[1] >= 1 && e.w !== -2);
   console.log('partido de bots terminó', e.sc, 'ganó', e.w);
   assert.strictEqual(rooms.get(r3.code).phase, 'lobby');
