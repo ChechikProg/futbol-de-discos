@@ -19,7 +19,7 @@ const DIFF = {
   normal: { key: 'normal', label: 'Normal',  think: 11, speed: 0.86, predict: 0.45, aimErr: 0.22,  kickTol: 0.5,  sloppy: 0.05, gkSkill: 0.65 },
   hard:   { key: 'hard',   label: 'Difícil', think: 5,  speed: 0.96, predict: 0.85, aimErr: 0.08,  kickTol: 0.28, sloppy: 0.01, gkSkill: 0.9 },
   expert: { key: 'expert', label: 'Experto', think: 2,  speed: 1,    predict: 1,    aimErr: 0.015, kickTol: 0.14, sloppy: 0,    gkSkill: 1 },
-  impossible: { key: 'impossible', label: 'Imposible', think: 3, speed: 1.12, predict: 1, aimErr: 0, kickTol: 0.06, sloppy: 0, gkSkill: 1, smart: true }
+  impossible: { key: 'impossible', label: 'Imposible', think: 2, speed: 1.35, kick: 1.22, predict: 1, aimErr: 0, kickTol: 0.06, sloppy: 0, gkSkill: 1, smart: true }
 };
 
 /* Posiciones de saque para el equipo de la izquierda, en la cancha clásica */
@@ -204,8 +204,9 @@ function step(G) {
       if (p.armed) {
         const ddx = ball.x - p.x, ddy = ball.y - p.y, d = Math.hypot(ddx, ddy);
         if (d > 0 && d - p.r - ball.r < C.kickRange) {
-          ball.vx += ddx / d * C.kickStr * ball.invMass;
-          ball.vy += ddy / d * C.kickStr * ball.invMass;
+          const ks = C.kickStr * (p.human ? 1 : (p.diff.kick || 1));
+          ball.vx += ddx / d * ks * ball.invMass;
+          ball.vy += ddy / d * ks * ball.invMass;
           p.armed = false; p.flash = 10;
           touchBall(G, p); ev(G, 'kick');
         }
@@ -586,11 +587,11 @@ function smHold(G, p, x, y, t0) {
 }
 
 /* velocidad de salida para que la pelota vaya en la dirección (dx, dy) sumando el impulso de la patada */
-function smSolve(bvx, bvy, dx, dy) {
-  const dv = dx * bvx + dy * bvy, disc = dv * dv - (bvx * bvx + bvy * bvy) + C.kickStr * C.kickStr;
+function smSolve(bvx, bvy, dx, dy, ks) {
+  const dv = dx * bvx + dy * bvy, disc = dv * dv - (bvx * bvx + bvy * bvy) + ks * ks;
   if (disc < 0) return null;
   const s = dv + Math.sqrt(disc);
-  return { s, ux: (s * dx - bvx) / C.kickStr, uy: (s * dy - bvy) / C.kickStr };
+  return { s, ux: (s * dx - bvx) / ks, uy: (s * dy - bvy) / ks };
 }
 
 function smDecide(G, p) {
@@ -690,7 +691,7 @@ function smDecide(G, p) {
   let bestU = null, bestV = -1e9, bestKind = '';
   for (const [tx, ty] of targets) {
     let dx = tx - bx, dy = ty - by; const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
-    const sol = smSolve(bvx, bvy, dx, dy);
+    const sol = smSolve(bvx, bvy, dx, dy, C.kickStr * (p.diff.kick || 1));
     if (!sol) continue;
     const e = smEval(G, p, bx, by, sol.s * dx, sol.s * dy);
     /* acomodarse detrás de la pelota para ese toque cuesta tiempo */
@@ -736,7 +737,7 @@ function smTick(G, p) {
   let kick = false;
   const b = G.ball, dx0 = b.x - p.x, dy0 = b.y - p.y, d0 = Math.hypot(dx0, dy0);
   if (d0 > 0 && d0 - p.r - b.r < C.kickRange) {
-    const vx = b.vx + dx0 / d0 * C.kickStr, vy = b.vy + dy0 / d0 * C.kickStr;
+    const ks = C.kickStr * (p.diff.kick || 1), vx = b.vx + dx0 / d0 * ks, vy = b.vy + dy0 / d0 * ks;
     const e = smEval(G, p, b.x, b.y, vx, vy), hold = smHold(G, p, b.x, b.y, 0);
     const plan = A.plan && A.plan !== 'carry' ? A.planV : -1e9;
     /* pelota trabada contra un rival: no quedarse empujando, sacarla */

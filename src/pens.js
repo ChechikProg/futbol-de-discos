@@ -9,11 +9,11 @@ const PEN = (() => {
   const RUN = 165;           // cuánto detrás de la pelota arranca el que patea (afuera de la medialuna)
   const BOOST = 1.4;         // el tiro sale bastante más rápido que uno común
   const AIM_TICKS = 600;      // tiempo para patear (10 s)
-  const FEINT = { back: 70, lean: 10, turn: 56, k: 2, over: 1.75 };   // amague de los pateadores Experto e Imposible
+  const FEINT = { stop: 36, k: -2, over: 2.2 };   // se frena a 36 de la pelota y el último paso sale cruzado (corrige de más porque el toque abre menos)
   const KEEPER = { acc: 1.9, damp: 0.9, x0: 24, x1: 24, edge: 14 };   // arquero clavado en la línea (no puede adelantarse, solo se mueve de costado), más ágil que un jugador común
   const REACT = { easy: 11, normal: 8, hard: 6, expert: 5, impossible: 6 };
-  const AIMBAND = { easy: [0.3, 0.7], normal: [0.45, 0.8], hard: [0.6, 0.84], expert: [0.7, 0.84], impossible: [0.84, 0.88] };   // qué tan cerca del palo patea la máquina          // ticks que tarda el arquero en reaccionar al tiro
-  const AIMERR = { easy: 0.32, normal: 0.16, hard: 0.08, expert: 0.03, impossible: 0 };
+  const AIMBAND = { easy: [0.05, 0.6], normal: [0.2, 0.75], hard: [0.4, 0.85], expert: [0.6, 0.88], impossible: [0.8, 0.9] };   // qué tan cerca del palo patea la máquina          // ticks que tarda el arquero en reaccionar al tiro
+  const AIMERR = { easy: 0.45, normal: 0.3, hard: 0.18, expert: 0.08, impossible: 0.02 };
   const GUESS = { easy: 0.4, normal: 0.22, hard: 0.1, expert: 0.03, impossible: 0 };   // chance de que el arquero se tire para el lado equivocado
 
   /* ---- tanda: 5 tiros cada uno y muerte súbita ---- */
@@ -90,34 +90,25 @@ const PEN = (() => {
     const G = Kk.G, sh = G.players[0], b = G.ball, W = G.geo.W, a = Kk.ai;
     if (Kk.shotTick != null) return { dx: 0, dy: 0, kick: false };
     if (Kk.ticks < a.wait) return { dx: 0, dy: 0, kick: false };
-    let ux = W - b.x, uy = a.aimY - b.y; const ul = Math.hypot(ux, uy) || 1; ux /= ul; uy /= ul;
-    if (a.feint) {
-      /* Experto e Imposible: se paran derecho detrás de la pelota, arrancan como para el otro palo
-         y recién en los últimos pasos corrigen la carrera hacia el lado elegido */
-      const lean = -Math.sign(a.aimY || 1) * FEINT.lean;
-      const px = b.x - FEINT.back, py = b.y + lean;
-      if (a.phase === 0) {
-        const d = Math.hypot(px - sh.x, py - sh.y);
-        if (d < 8 && Math.hypot(sh.vx, sh.vy) < 0.9) a.phase = 1;
-        else return { dx: (px - sh.x) / 25 - sh.vx * 0.9, dy: (py - sh.y) / 25 - sh.vy * 0.9, kick: false };
-      }
-      const d = Math.hypot(b.x - sh.x, b.y - sh.y);
-      let tx = b.x, ty = b.y + lean * 0.6;
-      if (d < FEINT.turn) {
-        let vx = W - b.x, vy = a.aimY * FEINT.over - b.y; const vl = Math.hypot(vx, vy) || 1; vx /= vl; vy /= vl;   // corrige de más: el toque abre menos de lo que apunta
-        const R = sh.r + b.r; tx = b.x - vx * (R - FEINT.k); ty = b.y - vy * (R - FEINT.k);
-      }
-      const ex = tx - sh.x, ey = ty - sh.y, el = Math.hypot(ex, ey) || 1;
-      return { dx: ex / el, dy: ey / el, kick: true };
-    }
-    const px = b.x - ux * 42, py = b.y - uy * 42;
+    /* corre derecho hasta quedar parado detrás de la pelota (sin delatar el lado), hace una pausa
+       y recién en el último paso sale cruzado hacia el palo elegido */
     if (a.phase === 0) {
-      const d = Math.hypot(px - sh.x, py - sh.y);
-      if (d < 10 && Math.hypot(sh.vx, sh.vy) < 0.9) a.phase = 1;
-      else return { dx: (px - sh.x) / 25 - sh.vx * 0.9, dy: (py - sh.y) / 25 - sh.vy * 0.9, kick: false };
+      const px = b.x - FEINT.stop, py = b.y, dx = px - sh.x, dy = py - sh.y, d = Math.hypot(dx, dy);
+      if (d < 3 && Math.hypot(sh.vx, sh.vy) < 0.25) { a.phase = 1; a.hold = Kk.ticks + 6 + Math.floor(Math.random() * 30); }
+      else {
+        const sp = Math.min(2.4, Math.sqrt(2 * 0.1 * d) * 0.8);
+        const ex = (d ? dx / d : 0) * sp - sh.vx, ey = (d ? dy / d : 0) * sp - sh.vy, el = Math.hypot(ex, ey);
+        return el > 0.02 ? { dx: ex / el * Math.min(1, el / 0.2), dy: ey / el * Math.min(1, el / 0.2), kick: false } : { dx: 0, dy: 0, kick: false };
+      }
     }
-    const dx = b.x - sh.x, dy = b.y - sh.y, d = Math.hypot(dx, dy) || 1;
-    return { dx: dx / d, dy: dy / d, kick: true };
+    if (a.phase === 1) {
+      if (Kk.ticks < a.hold) return { dx: -sh.vx * 5, dy: -sh.vy * 5, kick: false };
+      a.phase = 2;
+    }
+    let vx = W - b.x, vy = a.aimY * FEINT.over - b.y; const vl = Math.hypot(vx, vy) || 1; vx /= vl; vy /= vl;
+    const R = sh.r + b.r, tx = b.x - vx * (R - FEINT.k), ty = b.y - vy * (R - FEINT.k);
+    const ex = tx - sh.x, ey = ty - sh.y, el = Math.hypot(ex, ey) || 1;
+    return { dx: ex / el, dy: ey / el, kick: true };
   }
 
   /* avanza un tick. inS / inK: controles del que patea y del arquero ({dx,dy,kick}) */
