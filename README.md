@@ -47,7 +47,15 @@ test/              pruebas (bots, Mundial, penales, navegador)
 
 ## El nivel Imposible
 
-Usa un bot distinto al resto (`smDecide` / `smTick` en `src/core.js`): predice el recorrido de la pelota con rebotes, calcula cuántos ticks tarda cada jugador en llegar, y si llega primero prueba tiros al arco y de rebote en la pared, simula cada uno y elige el que nadie alcanza a cortar. Si el rival llega antes, se para entre la pelota y su arco y tapa los tiros yendo al punto del recorrido que alcanza primero. Patea solo cuando la simulación dice que conviene. En penales, el arquero lee la carrera del que patea.
+Tiene la misma velocidad y la misma patada que el jugador: la diferencia es solo de inteligencia (`smDecide` / `smTick` en `src/core.js`).
+
+- Predice el recorrido de la pelota con rebotes y calcula cuántos ticks tarda cada jugador en llegar.
+- Con la pelota, simula cada opción (tiros directos y de rebote, pases directos y por la pared, pases al espacio, conducir) y elige la mejor.
+- Tiene en cuenta que una persona tarda unos 11 ticks (≈0,2 s) en reaccionar a una patada nueva, así que remata y pasa donde no llegás a reaccionar.
+- Defiende en la bisectriz del ángulo entre la pelota y los palos, a la distancia en la que su cuerpo tapa todo el arco; si lo pasan, vuelve a la boca del arco; cerca de su arco no se la juega y nunca la manda hacia su propio arco.
+- Gambetea amagando: si el rival se tira para un lado, sale para el otro.
+
+Ideas tomadas de guías de arqueros de HaxBall (ocupar la posición que cubre los ángulos, achicar sin regalar la espalda, hacer que el rival se comprometa y salir para el otro lado).
 
 ## Datos de la Libertadores
 
