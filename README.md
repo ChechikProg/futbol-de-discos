@@ -4,6 +4,7 @@ Fútbol de discos al estilo HaxBall en el navegador. Se juega solo, sin servidor
 
 - **Contra la máquina**: 1v1, 2v2 o 3v3, cinco dificultades (de Fácil a Imposible), cancha a elegir (chica, clásica, grande, enorme o personalizada).
 - **Mundial**: elegís una selección, se sortean los grupos y jugás hasta la final. Formato de 48 selecciones (12 grupos, pasan los mejores terceros) o de 32. Perder en eliminación directa te saca del torneo. La dificultad de los rivales es configurable e incluye un modo progresivo.
+- **Copa Libertadores**: elegís un club entre 32 (basados en la edición 2026, con River y Racing). 8 grupos de 4 a ida y vuelta (6 partidos, 3 de local), pasan los 2 primeros. Octavos, cuartos y semifinales a ida y vuelta por global (sin gol de visitante); si en la vuelta el global queda igualado, gol de oro de 1 minuto y penales. Final a partido único en el Estadio Centenario. Cada club juega de local en su estadio (La Bombonera, el Más Monumental, El Cilindro, el Maracanã para los brasileños, el Hernando Siles con pista, etc.; los demás usan tribunas estándar con el nombre de su estadio) y los bots llevan nombres de jugadores reales del plantel.
 - **Gol de oro y penales**: si un partido termina empatado, se juega un gol de oro de 1 minuto (el primero que convierte gana). Si nadie convierte, se define por penales al estilo del mapa de penales de HaxBall: la pelota está en el punto penal, el que patea arranca atrás, corre y le pega con la física del juego, y el arquero (un disco pegado a la línea, que no puede adelantarse ni patear) trata de taparla. El que patea tiene un solo toque: después del primer contacto con la pelota queda quieto y ya no puede tocarla. Son cinco tiros cada uno y, si siguen igualados, muerte súbita.
   En el Mundial, la fase de grupos admite empates como siempre: ni gol de oro ni penales. Solo se juegan en las llaves.
 
@@ -34,6 +35,7 @@ Si cambiás algo en `src/`, corré `npm run build` para regenerar `public/index.
 server.js          servidor estático mínimo (para Render o para probar en local)
 src/core.js        física y bots
 src/wc.js          lógica del Mundial (sorteo, grupos, llaves, simulación)
+src/lib.js         Copa Libertadores: equipos, estadios, jugadores, grupos e llaves ida y vuelta
 src/pens.js        penales: reglas de la tanda, física de cada penal y bots
 src/ui_*.js        interfaz (partido, Mundial, penales, inicio)
 src/template.html  estilos y base de la página
@@ -41,11 +43,15 @@ build.js           junta todo en public/index.html
 test/              pruebas (bots, Mundial, penales, navegador)
 ```
 
-`npm test` corre las pruebas del Mundial y de los penales. Las de navegador (`test/browser1.js`, `test/browser_pens.js`) usan Playwright y esperan el servidor en el puerto 3100 (`PORT=3100 npm start`).
+`npm test` corre las pruebas del Mundial, la Libertadores y los penales. Las de navegador (`test/browser1.js`, `test/browser_pens.js`, `test/browser_lib.js`) usan Playwright y esperan el servidor en el puerto 3100 (`PORT=3100 npm start`).
 
 ## El nivel Imposible
 
 Usa un bot distinto al resto (`smDecide` / `smTick` en `src/core.js`): predice el recorrido de la pelota con rebotes, calcula cuántos ticks tarda cada jugador en llegar, y si llega primero prueba tiros al arco y de rebote en la pared, simula cada uno y elige el que nadie alcanza a cortar. Si el rival llega antes, se para entre la pelota y su arco y tapa los tiros yendo al punto del recorrido que alcanza primero. Patea solo cuando la simulación dice que conviene. En penales, el arquero lee la carrera del que patea.
+
+## Datos de la Libertadores
+
+Los planteles salen de las páginas de plantel de BeSoccer (noviembre de 2026) y pueden quedar desactualizados con los pases. Las valoraciones de los equipos son propias.
 
 ## Límites conocidos
 

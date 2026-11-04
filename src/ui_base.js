@@ -161,7 +161,7 @@ const cv = $('cv'), g2 = cv.getContext('2d');
 let dpr = 1, VW = 0, VH = 0;
 let game = null;          // partida local (contra la máquina o Mundial)
 let view = null;          // lo que se está dibujando
-let mode = 'none';        // 'local' | 'wc' | 'pens'
+let mode = 'none';        // 'local' | 'wc' | 'lib' | 'pens'
 let state = 'idle';       // 'idle' | 'playing' | 'paused' | 'ended'
 let acc = 0, lastT = 0;
 const keys = {};
@@ -332,10 +332,143 @@ function inkOn(hex) {
   return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? '#101412' : '#ffffff';
 }
 
+/* ---------- Estadios (modo Libertadores) ----------
+   Las tribunas se dibujan una sola vez en un lienzo aparte y después se copian en cada cuadro. */
+const STAND = 58;
+const STAD_CACHE = { key: '', cv: null, ox: 0, oy: 0 };
+const CURVED = { oval: 1, maracana: 1, circle: 1 };
+/* medidas del estadio (mitad de ancho y alto, en unidades de la cancha) y forma interior */
+function stadiumGeo(G) {
+  const st = G.cfg.stadium, g = G.geo;
+  if (!st) return null;
+  if (st.style === 'circle') {
+    const rx = g.W * 1.42, ry = g.H * 1.42;
+    return { st, inner: { kind: 'ell', rx, ry }, ox: rx + STAND, oy: ry + STAND * 0.85 };
+  }
+  if (CURVED[st.style]) {
+    const iw = g.boxW + 10, ih = g.boxH + 10, R = 120;
+    return { st, inner: { kind: 'rr', w: iw, h: ih, r: R }, ox: iw + STAND, oy: ih + STAND, R };
+  }
+  const flatBottom = st.style === 'bombonera';
+  return { st, inner: { kind: 'rect', w: g.boxW, h: g.boxH }, ox: g.boxW + STAND, oy: g.boxH + STAND, flatBottom };
+}
+function rrPath(ctx, w, h, r) {
+  ctx.moveTo(-w + r, -h); ctx.arcTo(w, -h, w, h, r); ctx.arcTo(w, h, -w, h, r); ctx.arcTo(-w, h, -w, -h, r); ctx.arcTo(-w, -h, w, -h, r); ctx.closePath();
+}
+function shapePath(ctx, sh, grow) {
+  if (sh.kind === 'ell') ctx.ellipse(0, 0, sh.rx + grow, sh.ry + grow * 0.85, 0, 0, TAU);
+  else if (sh.kind === 'rr') rrPath(ctx, sh.w + grow, sh.h + grow, sh.r + grow);
+  else rrPath(ctx, sh.w + grow, sh.h + grow, grow > 0 ? 10 : 0.01);
+}
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => Math.max(0, Math.min(255, Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f))));
+  return 'rgb(' + c.join(',') + ')';
+}
+function buildStadium(G, SG, px) {
+  const st = SG.st, g = G.geo, cv2 = document.createElement('canvas');
+  cv2.width = Math.ceil(SG.ox * 2 * px); cv2.height = Math.ceil(SG.oy * 2 * px);
+  const c = cv2.getContext('2d');
+  c.setTransform(px, 0, 0, px, SG.ox * px, SG.oy * px);
+  const crowd = st.crowd || ['#d9d9d9', '#555555'];
+  const pal = [crowd[0], crowd[0], crowd[1], shade(crowd[0], -0.35), shade(crowd[1], -0.3), '#e8e2d6', '#2b2b2b'];
+  /* forma de las tribunas: de la forma interior hasta el borde exterior */
+  const outer = new Path2D(), stands = new Path2D();
+  if (SG.inner.kind === 'rect') {
+    const ow = SG.ox, oh = SG.oy;
+    if (SG.flatBottom) {
+      /* La Bombonera: tres tribunas altas y un lado recto con palcos */
+      rrPath(outer, ow, oh, 10);
+      rrPath(stands, ow, oh, 10);
+    } else { rrPath(outer, ow, oh, 10); rrPath(stands, ow, oh, 10); }
+    rrPath(stands, SG.inner.w, SG.inner.h, 0.01);
+  } else {
+    shapePath(outer, SG.inner, STAND); shapePath(stands, SG.inner, STAND); shapePath(stands, SG.inner, 0);
+  }
+  c.fillStyle = '#1b2420'; c.fill(outer);
+  c.save(); c.clip(stands, 'evenodd');
+  /* gente: puntitos de colores (con semilla fija para que no titilen) */
+  let seed = 7;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const stepD = 4.2;
+  for (let y = -SG.oy; y < SG.oy; y += stepD) {
+    for (let x = -SG.ox; x < SG.ox; x += stepD) {
+      const jx = x + rnd() * 1.6, jy = y + rnd() * 1.6;
+      let col = pal[Math.floor(rnd() * pal.length)];
+      if (st.style === 'bombonera') {
+        /* tribunas a franjas azul y oro, como las bandejas de la Bombonera */
+        const band = Math.floor((Math.max(Math.abs(jx) - g.boxW, Math.abs(jy) - g.boxH)) / 13);
+        col = rnd() < 0.82 ? (band % 2 ? crowd[1] : crowd[0]) : pal[3 + Math.floor(rnd() * 4)];
+      }
+      c.fillStyle = col; c.fillRect(jx, jy, 2.6, 2.6);
+    }
+  }
+  /* escalones: líneas que siguen la forma de la tribuna */
+  c.strokeStyle = 'rgba(0,0,0,.22)'; c.lineWidth = 1.2;
+  for (let k = 12; k < STAND; k += 12) {
+    c.beginPath();
+    if (SG.inner.kind === 'rect') rrPath(c, SG.inner.w + k, SG.inner.h + k, 4 + k * 0.1); else shapePath(c, SG.inner, k);
+    c.stroke();
+  }
+  c.restore();
+  if (st.style === 'bombonera') {
+    /* el lado recto: palcos en una franja angosta y el resto liso */
+    const y0 = g.boxH, y1 = SG.oy;
+    c.fillStyle = '#e9e4d2'; c.fillRect(-SG.ox + 12, y0, (SG.ox - 12) * 2, y1 - y0);
+    c.fillStyle = '#0b3d91'; c.fillRect(-SG.ox + 12, y0 + 4, (SG.ox - 12) * 2, 14);
+    c.fillStyle = '#f2c400';
+    for (let x = -SG.ox + 20; x < SG.ox - 24; x += 22) c.fillRect(x, y0 + 7, 14, 8);
+    c.fillStyle = 'rgba(11,61,145,.85)';
+    for (let x = -SG.ox + 18; x < SG.ox - 20; x += 16) c.fillRect(x, y0 + 24, 10, 22);
+  }
+  if (st.style === 'roof' || st.style === 'maracana') {
+    /* techo: una franja clara sobre la parte de atrás de las tribunas */
+    c.save();
+    const roof = new Path2D();
+    if (SG.inner.kind === 'rect') { rrPath(roof, SG.ox, SG.oy, 10); rrPath(roof, SG.inner.w + STAND * 0.45, SG.inner.h + STAND * 0.45, 6); }
+    else { shapePath(roof, SG.inner, STAND); shapePath(roof, SG.inner, STAND * 0.5); }
+    c.fillStyle = st.style === 'maracana' ? 'rgba(245,245,245,.78)' : 'rgba(225,232,238,.55)'; c.fill(roof, 'evenodd');
+    c.restore();
+  }
+  if (st.style === 'centenario') {
+    /* la Torre de los Homenajes, en la tribuna de enfrente */
+    const tx = 0, ty = -g.boxH - STAND * 0.55;
+    c.fillStyle = 'rgba(0,0,0,.35)'; c.fillRect(tx - 15, ty - 22, 34, 50);
+    c.fillStyle = '#f1efe8'; c.fillRect(tx - 12, ty - 26, 24, 50);
+    c.fillStyle = '#c9c3b3'; for (let k = 0; k < 4; k++) c.fillRect(tx - 9, ty - 20 + k * 11, 18, 3);
+    c.fillStyle = '#6cb4e4'; c.fillRect(tx - 3, ty - 34, 6, 10);
+  }
+  if (CURVED[st.style] || st.style === 'circle') {
+    /* lo que rodea a la cancha dentro del estadio */
+    c.fillStyle = COL.box; const inr = new Path2D(); shapePath(inr, SG.inner, 0); c.fill(inr);
+  }
+  c.strokeStyle = 'rgba(0,0,0,.5)'; c.lineWidth = 2; c.stroke(outer);
+  return cv2;
+}
+function drawStadium(G, sc) {
+  const SG = stadiumGeo(G);
+  if (!SG) return;
+  const px = sc * dpr, st = SG.st;
+  const key = [st.key, st.n, (st.crowd || []).join(), G.geo.W, G.geo.H, Math.round(px * 100)].join('|');
+  if (STAD_CACHE.key !== key) { STAD_CACHE.key = key; STAD_CACHE.cv = buildStadium(G, SG, px); STAD_CACHE.ox = SG.ox; STAD_CACHE.oy = SG.oy; }
+  g2.drawImage(STAD_CACHE.cv, -STAD_CACHE.ox, -STAD_CACHE.oy, STAD_CACHE.ox * 2, STAD_CACHE.oy * 2);
+}
+
 function drawPitch(G) {
   const geo = G.geo, W = geo.W, H = geo.H, gh = geo.gh, d = geo.d;
-  g2.fillStyle = COL.box; g2.fillRect(-geo.boxW, -geo.boxH, geo.boxW * 2, geo.boxH * 2);
+  const st = G.cfg.stadium;
+  if (!st || !(CURVED[st.style] || st.style === 'circle')) { g2.fillStyle = COL.box; g2.fillRect(-geo.boxW, -geo.boxH, geo.boxW * 2, geo.boxH * 2); }
   g2.fillStyle = COL.pitch; g2.fillRect(-W, -H, W * 2, H * 2);
+  if (st && st.style === 'track') {
+    /* pista de atletismo alrededor de la cancha (Hernando Siles) */
+    g2.save();
+    const tr = new Path2D(); rrPath(tr, W + 46, H + 27, 30); rrPath(tr, W + 14, H + 9, 12);
+    g2.fillStyle = '#b4573a'; g2.fill(tr, 'evenodd');
+    g2.strokeStyle = 'rgba(255,255,255,.4)'; g2.lineWidth = 0.8;
+    for (const k of [22, 28, 34, 40]) { g2.beginPath(); rrPath(g2, W + k + 4, H + k * 0.5 + 6, 12 + k * 0.4); g2.stroke(); }
+    g2.restore();
+    g2.fillStyle = COL.pitch; g2.fillRect(-W, -H, W * 2, H * 2);
+  }
+  if (st) { g2.fillStyle = 'rgba(255,255,255,.045)'; for (let x = -W; x < W; x += 2 * W / 9) g2.fillRect(x, -H, W / 9, H * 2); }
   for (const s of [-1, 1]) {
     const x0 = s > 0 ? W : -W - d;
     g2.fillStyle = 'rgba(8,14,10,.22)'; g2.fillRect(x0, -gh, d, gh * 2);
@@ -374,13 +507,15 @@ function drawGame(G, alpha, extra) {
   g2.setTransform(dpr, 0, 0, dpr, 0, 0);
   g2.fillStyle = COL.bg; g2.fillRect(0, 0, VW, VH);
   if (!G) return;
-  const geo = G.geo, top = 74, bot = 14, side = 10;
+  const geo = G.geo, top = 74, bot = G.cfg.stadium ? 30 : 14, side = 10;
   const aw = VW - side * 2, ah = VH - top - bot;
-  const sc = Math.min(aw / (2 * (geo.boxW + 6)), ah / (2 * (geo.boxH + 6)));
+  const SG = stadiumGeo(G), ex = SG ? SG.ox : geo.boxW, ey = SG ? SG.oy : geo.boxH;
+  const sc = Math.min(aw / (2 * (ex + 6)), ah / (2 * (ey + 6)));
   const ox = VW / 2, oy = top + ah / 2;
   const ix = d => d.px + (d.x - d.px) * alpha, iy = d => d.py + (d.y - d.py) * alpha;
 
   g2.save(); g2.translate(ox, oy); g2.scale(sc, sc);
+  drawStadium(G, sc);
   drawPitch(G);
   const b = G.ball, bx = ix(b), by = iy(b);
   g2.beginPath(); g2.arc(bx, by, b.r, 0, TAU); g2.fillStyle = '#fff'; g2.fill();
@@ -440,7 +575,8 @@ function drawHud(G, extra) {
   const sub = G.cfg.subtitle ? G.cfg.subtitle : DIFF[G.cfg.diff] ? DIFF[G.cfg.diff].label + ' · ' + G.cfg.size + 'v' + G.cfg.size : '';
   const lim = G.cfg.timeLimit > 0 ? ' · ' + G.cfg.timeLimit + ':00' : '';
   const goals = G.cfg.scoreLimit > 0 ? ' · a ' + G.cfg.scoreLimit : '';
-  g2.fillText(G.overtime ? 'Gol de oro · el próximo gol gana' : sub + lim + goals, VW / 2, y0 + hh + 16);
+  const agg = G.cfg.agg ? ' · global ' + (G.score[0] + G.cfg.agg[0]) + '–' + (G.score[1] + G.cfg.agg[1]) : '';
+  g2.fillText((G.overtime ? 'Gol de oro · el próximo gol gana' : sub + lim + goals) + agg, VW / 2, y0 + hh + 16);
   if (extra && extra.ping != null) {
     g2.textAlign = 'left'; g2.fillStyle = extra.ping > 150 ? '#ffb4a3' : 'rgba(233,240,234,.62)';
     g2.fillText(extra.ping + ' ms', 14, 28);
@@ -467,7 +603,7 @@ let onLocalEnd = null;
 function frame(now) {
   requestAnimationFrame(frame);
   if (mode === 'pens') { penFrame(now); return; }
-  if (state === 'playing' && game && (mode === 'local' || mode === 'wc')) {
+  if (state === 'playing' && game && (mode === 'local' || mode === 'wc' || mode === 'lib')) {
     acc += Math.min(now - lastT, 100); lastT = now;
     const human = game.players.find(q => q.human);
     while (acc >= DT && !game.over) {

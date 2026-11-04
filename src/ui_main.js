@@ -100,6 +100,7 @@ function buildPenTest() {
 const ICONS = {
   bot: '<svg viewBox="0 0 64 40" aria-hidden="true"><circle cx="14" cy="20" r="11" fill="#e56e56" stroke="#101412" stroke-width="3"/><circle cx="50" cy="20" r="11" fill="#5689e5" stroke="#101412" stroke-width="3"/><circle cx="32" cy="20" r="5" fill="#fff" stroke="#101412" stroke-width="2.5"/></svg>',
   pen: '<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M8 36V8h48v28" fill="none" stroke="#c7e6bd" stroke-width="3" stroke-linejoin="round"/><circle cx="32" cy="26" r="7" fill="#e56e56" stroke="#101412" stroke-width="3"/><circle cx="46" cy="34" r="4" fill="#fff" stroke="#101412" stroke-width="2"/></svg>',
+  lib: '<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M25 4h14v6c0 7-3 11-7 11s-7-4-7-11z" fill="#dfe3e8" stroke="#101412" stroke-width="2.5" stroke-linejoin="round"/><circle cx="32" cy="11" r="3" fill="#0b3d91"/><path d="M32 21v6" stroke="#dfe3e8" stroke-width="4"/><path d="M22 30h20v6H22z" fill="#2b2b2b" stroke="#dfe3e8" stroke-width="2"/><path d="M14 14c4 2 6 6 8 10M50 14c-4 2-6 6-8 10" stroke="#f2c400" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>',
   cup: '<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M22 4h20v10c0 8-4 12-10 12s-10-4-10-12z" fill="#e8c14a" stroke="#101412" stroke-width="3" stroke-linejoin="round"/><path d="M22 7h-8c0 8 3 11 8 12M42 7h8c0 8-3 11-8 12" fill="none" stroke="#e8c14a" stroke-width="3" stroke-linecap="round"/><path d="M32 26v6M24 36h16" stroke="#e8c14a" stroke-width="4" stroke-linecap="round"/></svg>'
 };
 
@@ -116,8 +117,9 @@ function buildHome() {
   const logo = h('span', { class: 'logo' }); logo.innerHTML = '<svg viewBox="0 0 56 56" aria-hidden="true"><rect x="2" y="8" width="52" height="40" rx="4" fill="#6e8d5a" stroke="#c7e6bd" stroke-width="2.5"/><path d="M28 8v40" stroke="#c7e6bd" stroke-width="2.5"/><circle cx="28" cy="28" r="8" fill="none" stroke="#c7e6bd" stroke-width="2.5"/><circle cx="16" cy="28" r="5.5" fill="#e56e56" stroke="#101412" stroke-width="2"/><circle cx="40" cy="28" r="5.5" fill="#5689e5" stroke="#101412" stroke-width="2"/><circle cx="28" cy="28" r="3.2" fill="#fff" stroke="#101412" stroke-width="1.5"/></svg>';
   c.append(h('div', { class: 'brand' }, logo, h('div', null, h('h1', { text: 'Fútbol de Discos' }), h('p', { class: 'sub', text: 'Elegí cómo querés jugar.' }))));
   c.append(h('div', { class: 'modes' },
-    modeCard(ICONS.bot, 'Contra la máquina', '1v1, 2v2 o 3v3 con cuatro dificultades y cancha a medida.', () => { buildLocal(); showScreen('local'); }),
+    modeCard(ICONS.bot, 'Contra la máquina', '1v1, 2v2 o 3v3 con cinco dificultades y cancha a medida.', () => { buildLocal(); showScreen('local'); }),
     modeCard(ICONS.cup, 'Mundial', 'Elegí un país, jugá grupos y llaves hasta la final.', () => { buildWcSetup(); showScreen('wcsetup'); }),
+    modeCard(ICONS.lib, 'Copa Libertadores', 'Tu club: grupos y llaves a ida y vuelta, y la final en el Centenario.', () => { buildLibSetup(); showScreen('libsetup'); }),
     modeCard(ICONS.pen, 'Probar penales', 'Una tanda suelta para practicar tiros y atajadas.', () => { buildPenTest(); showScreen('pentest'); })));
   c.append(h('details', { class: 'keys' },
     h('summary', { text: 'Controles' }),
@@ -145,6 +147,7 @@ function init() {
   mkScreen('pause', 'overlay').append(card('small'));
   mkScreen('end', 'overlay').append(card('small'));
   initWc();
+  initLib();
   initPens();
   buildHome();
   startLoop();

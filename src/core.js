@@ -237,7 +237,8 @@ function step(G) {
     if (ball.x < -geo.W) goal(G, 1);
     else if (ball.x > geo.W) goal(G, 0);
     else if (G.cfg.timeLimit > 0 && !G.overtime && G.playTicks >= G.cfg.timeLimit * 3600) {
-      if (G.score[0] !== G.score[1] || G.cfg.allowDraw) finish(G);   // la fase de grupos admite empates
+      const tt = totals(G);
+      if (tt[0] !== tt[1] || G.cfg.allowDraw) finish(G);   // la fase de grupos admite empates; en una vuelta cuenta el global
       else {
         /* empate en un partido que no admite empate: gol de oro de 1 minuto */
         G.overtime = true; G.otTicks = 0;
@@ -276,9 +277,16 @@ function goal(G, team) {
   ev(G, 'goal');
 }
 
+/* goles que definen: el resultado del partido, más los de la ida si es una vuelta (cfg.agg) */
+function totals(G) {
+  const a = G.cfg.agg;
+  return a ? [G.score[0] + a[0], G.score[1] + a[1]] : G.score;
+}
+
 function finish(G) {
   G.over = true;
-  G.winner = G.score[0] === G.score[1] ? -1 : (G.score[0] > G.score[1] ? 0 : 1);
+  const tt = totals(G);
+  G.winner = tt[0] === tt[1] ? -1 : (tt[0] > tt[1] ? 0 : 1);
   ev(G, 'end');
 }
 
@@ -755,4 +763,4 @@ function smTick(G, p) {
   p.in.dx = clamp(ix, -1, 1); p.in.dy = clamp(iy, -1, 1); p.in.kick = kick;
 }
 
-if (typeof module !== 'undefined') module.exports = { predictCross, C, PITCHES, PITCH_LIMITS, DIFF, makeGeo, createGame, step };
+if (typeof module !== 'undefined') module.exports = { predictCross, totals, C, PITCHES, PITCH_LIMITS, DIFF, makeGeo, createGame, step };

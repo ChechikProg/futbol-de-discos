@@ -41,7 +41,7 @@ async function playShootout(page, tag) {
   await page.waitForSelector('.mode');
   const modes = await page.$$eval('.mode .mode-t', els => els.map(e => e.textContent));
   console.log('modos:', modes.join(' | '));
-  if (modes.length !== 3 || modes.some(m => /online/i.test(m)) || !modes.includes('Probar penales')) errors.push('el inicio debería tener 3 modos sin online: ' + modes);
+  if (modes.length !== 4 || modes.some(m => /online/i.test(m)) || !modes.includes('Probar penales') || !modes.includes('Copa Libertadores')) errors.push('el inicio debería tener 4 modos sin online: ' + modes);
 
   // --- partido suelto empatado: gol de oro y después penales ---
   await page.click('.mode >> nth=0');
@@ -88,7 +88,7 @@ async function playShootout(page, tag) {
   await page.click('#end .btn >> text=Inicio');
 
   // --- práctica de penales desde el inicio ---
-  await page.click('.mode >> nth=2');
+  await page.click('.mode >> nth=3');
   await page.click('label[for="pt-penFirst-c"]');
   await page.click('#pentest .btn.go');
   await page.waitForFunction(() => PK.cur && PK.cur.S.first === 'c' && PK.cur.who === 'c', null, { timeout: 5000 });
