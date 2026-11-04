@@ -7,11 +7,11 @@ const PEN = (() => {
   const K = typeof module !== 'undefined' ? require('./core.js') : { createGame, step, predictCross, C, DIFF };
   const SPOT = 220;          // distancia del punto penal a la línea de gol
   const RUN = 165;           // cuánto detrás de la pelota arranca el que patea (afuera de la medialuna)
-  const BOOST = 1.25;        // el tiro sale un poco más rápido que uno común
-  const AIM_TICKS = 600;
-  const FEINT = { back: 90, turn: 48 };   // amague del pateador Imposible     // tiempo para patear (10 s)
-  const KEEPER = { acc: 2.2, damp: 0.9, x0: 24, x1: 24, edge: 14 };   // arquero clavado en la línea (no puede adelantarse, solo se mueve de costado), más ágil que un jugador común
-  const REACT = { easy: 20, normal: 15, hard: 12, expert: 10, impossible: 7 };
+  const BOOST = 1.4;         // el tiro sale bastante más rápido que uno común
+  const AIM_TICKS = 600;      // tiempo para patear (10 s)
+  const FEINT = { back: 70, lean: 10, turn: 56, k: 2, over: 1.75 };   // amague de los pateadores Experto e Imposible
+  const KEEPER = { acc: 1.9, damp: 0.9, x0: 24, x1: 24, edge: 14 };   // arquero clavado en la línea (no puede adelantarse, solo se mueve de costado), más ágil que un jugador común
+  const REACT = { easy: 11, normal: 8, hard: 6, expert: 5, impossible: 6 };
   const AIMBAND = { easy: [0.3, 0.7], normal: [0.45, 0.8], hard: [0.6, 0.84], expert: [0.7, 0.84], impossible: [0.84, 0.88] };   // qué tan cerca del palo patea la máquina          // ticks que tarda el arquero en reaccionar al tiro
   const AIMERR = { easy: 0.32, normal: 0.16, hard: 0.08, expert: 0.03, impossible: 0 };
   const GUESS = { easy: 0.4, normal: 0.22, hard: 0.1, expert: 0.03, impossible: 0 };   // chance de que el arquero se tire para el lado equivocado
@@ -55,7 +55,8 @@ const PEN = (() => {
         wait: 40 + Math.floor(Math.random() * 40), phase: 0, side,
         aimY: side * gh * (band[0] + Math.random() * (band[1] - band[0])) + (Math.random() * 2 - 1) * err * gh,
         react: REACT[o.diff] != null ? REACT[o.diff] : 13, guess: Math.random() < (GUESS[o.diff] != null ? GUESS[o.diff] : 0.22),
-        noise: (Math.random() * 2 - 1) * err * 30, read: o.diff === 'impossible'
+        noise: (Math.random() * 2 - 1) * err * 30, read: o.diff === 'impossible',
+        feint: o.diff === 'expert' || o.diff === 'impossible'
       }
     };
   }
@@ -90,6 +91,25 @@ const PEN = (() => {
     if (Kk.shotTick != null) return { dx: 0, dy: 0, kick: false };
     if (Kk.ticks < a.wait) return { dx: 0, dy: 0, kick: false };
     let ux = W - b.x, uy = a.aimY - b.y; const ul = Math.hypot(ux, uy) || 1; ux /= ul; uy /= ul;
+    if (a.feint) {
+      /* Experto e Imposible: se paran derecho detrás de la pelota, arrancan como para el otro palo
+         y recién en los últimos pasos corrigen la carrera hacia el lado elegido */
+      const lean = -Math.sign(a.aimY || 1) * FEINT.lean;
+      const px = b.x - FEINT.back, py = b.y + lean;
+      if (a.phase === 0) {
+        const d = Math.hypot(px - sh.x, py - sh.y);
+        if (d < 8 && Math.hypot(sh.vx, sh.vy) < 0.9) a.phase = 1;
+        else return { dx: (px - sh.x) / 25 - sh.vx * 0.9, dy: (py - sh.y) / 25 - sh.vy * 0.9, kick: false };
+      }
+      const d = Math.hypot(b.x - sh.x, b.y - sh.y);
+      let tx = b.x, ty = b.y + lean * 0.6;
+      if (d < FEINT.turn) {
+        let vx = W - b.x, vy = a.aimY * FEINT.over - b.y; const vl = Math.hypot(vx, vy) || 1; vx /= vl; vy /= vl;   // corrige de más: el toque abre menos de lo que apunta
+        const R = sh.r + b.r; tx = b.x - vx * (R - FEINT.k); ty = b.y - vy * (R - FEINT.k);
+      }
+      const ex = tx - sh.x, ey = ty - sh.y, el = Math.hypot(ex, ey) || 1;
+      return { dx: ex / el, dy: ey / el, kick: true };
+    }
     const px = b.x - ux * 42, py = b.y - uy * 42;
     if (a.phase === 0) {
       const d = Math.hypot(px - sh.x, py - sh.y);
@@ -141,7 +161,7 @@ const PEN = (() => {
     else if ((speed < 0.12 && since > 25) || since > 330) { Kk.result = Kk.touched ? 'save' : 'miss'; Kk.reason = 'parada'; }
   }
 
-  return { create, turn, score, record, newKick, tick, aiKeeper, aiShooter, SPOT, RUN, AIM_TICKS, KEEPER };
+  return { create, turn, score, record, newKick, tick, aiKeeper, aiShooter, SPOT, RUN, AIM_TICKS, KEEPER, FEINT, REACT };
 })();
 
 if (typeof module !== 'undefined') module.exports = PEN;

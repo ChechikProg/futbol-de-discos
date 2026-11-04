@@ -103,7 +103,7 @@ for (const off of [0, -40, 40]) {
   let g = 0; while (Kk.shotTick == null && g++ < 900) PEN.tick(Kk, { dx: 1, dy: -off / 150, kick: false }, idle);
   assert(Kk.shotTick != null && sh.noBall, 'la toca y es el tiro, sin apretar patear (' + off + ')');
   const sp = Math.hypot(G.ball.vx, G.ball.vy);
-  assert(sp > 4 && sp < 8 && G.ball.vx > 0, 'sale como un tiro normal: ' + sp.toFixed(2));
+  assert(sp > 6 && sp < 10 && G.ball.vx > 0, 'sale como un tiro fuerte: ' + sp.toFixed(2));
 }
 // el arquero está clavado en la línea: no se adelanta nada
 {
@@ -111,21 +111,34 @@ for (const off of [0, -40, 40]) {
   for (let i = 0; i < 200; i++) PEN.tick(Kk, idle, { dx: -1, dy: i % 2 ? 1 : -1, kick: false });
   assert(Math.abs(W - gk.x - 24) < 0.01, 'x fija: ' + (W - gk.x));
 }
-// nivel imposible: el arquero casi no deja pasar nada y el pateador va a los rincones
+// arquero imposible: lee la carrera; solo le entra el tiro perfecto bien al rincón
 {
-  let goals = 0, N = 120;
-  for (let i = 0; i < N; i++) { const Kk = mk('impossible'); Kk.ai.aimY = (i % 2 ? 1 : -1) * 70; if (play(Kk, PEN.aiShooter, PEN.aiKeeper) === 'goal') goals++; }
-  console.log('arquero imposible contra tiros fuertes a los rincones: gol', Math.round(goals / N * 100) + '%');
-  assert(goals / N < 0.1, 'el arquero imposible deja pasar: ' + goals / N);
+  const N = 120;
+  const vsImp = aim => { let g = 0; for (let i = 0; i < N; i++) { const Kk = mk('impossible'); Kk.ai.feint = false; Kk.ai.aimY = (i % 2 ? 1 : -1) * aim; if (play(Kk, PEN.aiShooter, PEN.aiKeeper) === 'goal') g++; } return g / N; };
+  const mid = vsImp(45), good = vsImp(65), perfect = vsImp(86);
+  console.log('arquero imposible: tiro a media altura', Math.round(mid * 100) + '% | rincón (65)', Math.round(good * 100) + '% | rincón perfecto (86)', Math.round(perfect * 100) + '%');
+  assert(mid < 0.05 && good < 0.3 && perfect > 0.8, 'balance del arquero imposible');
   let g2 = 0; for (let i = 0; i < N; i++) { const Kk = mk('impossible'); if (play(Kk, PEN.aiShooter, () => idle) === 'goal') g2++; }
   assert(g2 / N > 0.97, 'el pateador imposible no falla: ' + g2 / N);
-  /* lee la carrera: un tiro perfecto al rincón sin amagar también lo ataja */
-  let g3 = 0; for (let i = 0; i < N; i++) { const Kk = mk('impossible'); Kk.ai.aimY = (i % 2 ? 1 : -1) * 86; if (play(Kk, PEN.aiShooter, PEN.aiKeeper) === 'goal') g3++; }
-  console.log('arquero imposible contra el rincón perfecto sin amague: gol', Math.round(g3 / N * 100) + '%');
-  assert(g3 / N < 0.1);
+}
+// los pateadores Experto e Imposible amagan: se paran derecho detrás de la pelota y deciden el lado en los últimos pasos
+{
+  const Kk = mk('expert'); Kk.ai.wait = 0; const G = Kk.G, sh = G.players[0];
+  let n = 0, early = null;
+  while (Kk.shotTick == null && n++ < 900) { PEN.tick(Kk, PEN.aiShooter(Kk), idle); if (early == null && Kk.ai.phase === 1 && Math.hypot(G.ball.x - sh.x, G.ball.y - sh.y) > 62) early = sh.y - G.ball.y; }
+  assert(early != null && Math.sign(early) === -Math.sign(Kk.ai.aimY), 'arranca inclinado para el otro lado: ' + early + ' / ' + Kk.ai.aimY);
+  let k = 0; while (!Kk.result && k++ < 900) PEN.tick(Kk, idle, idle);
+  assert(Math.sign(G.ball.y) === Math.sign(Kk.ai.aimY) || Kk.result === 'goal', 'pero patea al lado elegido');
+}
+// el tiro de penal es más rápido que uno común
+{
+  const Kk = mk('normal'); Kk.ai.wait = 0; let n = 0, sp = 0;
+  while (Kk.shotTick == null && n++ < 900) PEN.tick(Kk, PEN.aiShooter(Kk), idle);
+  sp = Math.hypot(Kk.G.ball.vx, Kk.G.ball.vy);
+  assert(sp > 6.5, 'tiro rápido: ' + sp.toFixed(2));
 }
 // una tanda completa máquina contra máquina termina bien
-for (const d of ['easy', 'normal', 'hard', 'expert']) {   // (imposible contra imposible no termina nunca: los dos atajan todo)
+for (const d of ['easy', 'normal', 'hard']) {   // (en Experto e Imposible máquina contra máquina puede no terminar nunca)
   for (let n = 0; n < 12; n++) {
     const S = PEN.create(n % 2 ? 'u' : 'c'); let guard = 0;
     while (!S.done) {
