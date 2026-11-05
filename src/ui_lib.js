@@ -23,20 +23,23 @@ const LIB_GROUPS = [
     } },
   { key: 'minutes', label: 'Duración de cada partido', opts: [['1', '1 min'], ['2', '2 min'], ['3', '3 min'], ['5', '5 min']] },
   { key: 'size', label: 'Jugadores por equipo', opts: [['1', '1 vs 1'], ['2', '2 vs 2'], ['3', '3 vs 3']] },
-  { key: 'field', label: 'Tamaño de cancha', opts: [['auto', 'Automático'], ['stadium', 'Del estadio'], ['big', 'Grande'], ['huge', 'Enorme']],
+  { key: 'field', label: 'Tamaño de cancha', opts: [['auto', 'Futsal Bazinga'], ['big', 'Grande'], ['huge', 'Enorme'], ['stadium', 'Clásica']],
     hints: {
-      auto: 'Según los jugadores: la medida del estadio en 1v1, un 20% más grande en 2v2 y un 40% más en 3v3.',
-      stadium: 'La medida de cada estadio (la Bombonera es más chica, el Maracanã más grande).',
-      big: 'Cada estadio un 30% más grande.', huge: 'Cada estadio un 60% más grande. Ideal para 3v3.'
+      auto: 'Las medidas de los mapas de futsal de Bazinga (más grande en 2v2 y 3v3), con las proporciones de cada estadio.',
+      big: 'Futsal un 20% más grande.', huge: 'Futsal un 40% más grande.',
+      stadium: 'La medida clásica de HaxBall de cada estadio (más chica).'
     } }
 ];
 /* medida de la cancha para un partido: la del estadio, agrandada según la opción */
 function libPitch(base, size) {
-  const k = LIBCFG.field === 'stadium' ? 1 : LIBCFG.field === 'big' ? 1.3 : LIBCFG.field === 'huge' ? 1.6 : [1, 1, 1.2, 1.4][size] || 1;
-  const W = clampN(Math.round(base.W * k), PITCH_LIMITS.W[0], PITCH_LIMITS.W[1]);
-  const H = clampN(Math.round(base.H * k), PITCH_LIMITS.H[0], PITCH_LIMITS.H[1]);
-  const gh = clampN(Math.round(base.gh * Math.sqrt(k)), PITCH_LIMITS.gh[0], Math.min(PITCH_LIMITS.gh[1], H - 25));
-  return { W, H, gh };
+  /* futsal de Bazinga según la cantidad de jugadores, con las proporciones del estadio (la Bombonera es más chica) */
+  const fut = PITCHES.futsal.bySize[size] || PITCHES.futsal, prop = base.W / 370;
+  const k = LIBCFG.field === 'big' ? 1.2 : LIBCFG.field === 'huge' ? 1.4 : 1;
+  const src = LIBCFG.field === 'stadium' ? base : { W: fut.W * prop * k, H: fut.H * (base.H / 170) * k, gh: fut.gh * Math.sqrt(k), kr: fut.kr };
+  const W = clampN(Math.round(src.W), PITCH_LIMITS.W[0], PITCH_LIMITS.W[1]);
+  const H = clampN(Math.round(src.H), PITCH_LIMITS.H[0], PITCH_LIMITS.H[1]);
+  const gh = clampN(Math.round(src.gh), PITCH_LIMITS.gh[0], Math.min(PITCH_LIMITS.gh[1], H - 25));
+  return { W, H, gh, kr: src.kr };
 }
 
 function libChip(c, big) {
@@ -126,7 +129,7 @@ function libMatchTab(body) {
       h('p', { class: 'eyebrow', text: p.label + ' · ' + p.stadium.n }),
       h('div', { class: 'vs' }, side(p.h, p.final ? 'Neutral' : 'Local'), h('div', { class: 'vsx', text: 'vs' }), side(p.a, p.final ? 'Neutral' : 'Visitante')),
       ida,
-      h('p', { class: 'meta', text: 'Rival: ' + diffLabel(d) + ' · ' + lib.size + ' vs ' + lib.size + ' · ' + lib.minutes + ' min · cancha ' + ({ auto: 'automática', stadium: 'del estadio', big: 'grande', huge: 'enorme' }[LIBCFG.field] || 'automática') + rule }),
+      h('p', { class: 'meta', text: 'Rival: ' + diffLabel(d) + ' · ' + lib.size + ' vs ' + lib.size + ' · ' + lib.minutes + ' min · cancha ' + ({ auto: 'futsal', stadium: 'clásica', big: 'futsal grande', huge: 'futsal enorme' }[LIBCFG.field] || 'futsal') + rule }),
       h('p', { class: 'meta', text: 'Tu equipo: Vos' + (lib.size > 1 ? ', ' + LIB.BY[me].p.slice(0, lib.size - 1).join(', ') : '') + ' · Rival: ' + LIB.BY[opp].p.slice(0, lib.size).join(', ') }),
       h('div', { class: 'row' },
         h('button', { class: 'btn go', type: 'button', text: 'Jugar partido', onclick: libPlay }),

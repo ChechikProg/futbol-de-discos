@@ -6,7 +6,15 @@ const C = {
   pBC: 0.5, bBC: 0.5, postBC: 0.5, wallBC: 1, goalTicks: 150, goldenTicks: 3600
 };
 
+/* física: "futsal" es la de los mapas de futsal de Bazinga (pelota chica y liviana, jugadores sin rebote);
+   "classic" es la de la cancha clásica de HaxBall (se usa en los penales) */
+const PHYS = {
+  futsal: { acc: 0.11, kickAcc: 0.083, kickStr: 5, playerBC: 0, ballR: 6.25, ballInvMass: 1.5, ballBC: 0.4 },
+  classic: { acc: 0.1, kickAcc: 0.07, kickStr: 5, playerBC: 0.5, ballR: 10, ballInvMass: 1, ballBC: 0.5 }
+};
+
 const PITCHES = {
+  futsal:  { label: 'Futsal Bazinga', W: 420, H: 195, gh: 70, kr: 60, bySize: { 1: { W: 420, H: 195, gh: 70, kr: 60 }, 2: { W: 520, H: 238, gh: 78, kr: 66 }, 3: { W: 610, H: 280, gh: 85, kr: 72 }, 4: { W: 700, H: 320, gh: 90, kr: 80 } } },
   small:   { label: 'Chica',   W: 290, H: 130, gh: 55 },
   classic: { label: 'Clásica', W: 370, H: 170, gh: 64 },
   big:     { label: 'Grande',  W: 520, H: 240, gh: 85 },
@@ -37,7 +45,7 @@ function makeGeo(p) {
   const d = C.goalDepth;
   const geo = {
     W, H, gh, d, boxW: W + 50, boxH: H + 30,
-    kr: clamp(Math.round(H * 0.44), 45, Math.min(125, Math.floor(W * 0.32))),
+    kr: p.kr ? clamp(Math.round(+p.kr), 30, 130) : clamp(Math.round(H * 0.44), 45, Math.min(125, Math.floor(W * 0.32))),
     kx: W / 370, ky: H / 170, segs: []
   };
   const s = geo.segs;
@@ -70,18 +78,20 @@ function defaultRoster(cfg) {
 function createGame(cfg) {
   const geo = makeGeo(cfg.pitch);
   const G = {
-    cfg, geo, kits: cfg.kits || null, players: [], ball: mkDisc(0, 0, C.ballR, 1, C.bBC), posts: [], nTeam: [0, 0],
+    cfg, geo, phys: PHYS[cfg.physics] || PHYS.futsal, kits: cfg.kits || null, players: [], ball: null, posts: [], nTeam: [0, 0],
     score: [0, 0], tick: 0, playTicks: 0, phase: 'kickoff', kickTeam: 0,
     goalTimer: 0, lastGoalTeam: -1, lastTouch: null, tied: false, overtime: false, otTicks: 0, manual: !!cfg.manual, over: false,
     winner: -1, pendingEnd: false, banner: null, events: [], humanTeam: cfg.humanTeam
   };
+  G.ball = mkDisc(0, 0, G.phys.ballR, G.phys.ballInvMass, G.phys.ballBC);
   for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
     G.posts.push(mkDisc(sx * geo.W, sy * geo.gh, C.postR, 0, C.postBC));
   }
   const roster = cfg.roster || defaultRoster(cfg);
   for (const r of roster) {
     const team = r.team, idx = G.nTeam[team]++;
-    const p = mkDisc(0, 0, C.playerR, 0.5, C.pBC);
+    const p = mkDisc(0, 0, C.playerR, 0.5, G.phys.playerBC);
+    p.acc0 = G.phys.acc; p.kacc0 = G.phys.kickAcc;
     p.team = team; p.idx = idx; p.human = !!r.human; p.me = false;
     p.name = r.name || BOT_NAMES[team][idx % BOT_NAMES[team].length];
     p.in = { dx: 0, dy: 0, kick: false };
@@ -171,6 +181,19 @@ function collideSeg(d, s) {
   return 0;
 }
 
+/* Si en este tick la pelota atravesó una pared (empujada por un jugador o muy rápida), vuelve del lado de adentro */
+function uncross(d, x0, y0, s) {
+  const ax = s[0], ay = s[1], ex = s[2] - ax, ey = s[3] - ay;
+  const s0 = ex * (y0 - ay) - ey * (x0 - ax), s1 = ex * (d.y - ay) - ey * (d.x - ax);
+  if (s0 === 0 || (s0 > 0) === (s1 > 0)) return;
+  const t = s0 / (s0 - s1), ix = x0 + (d.x - x0) * t, iy = y0 + (d.y - y0) * t;
+  const L = Math.hypot(ex, ey), u = ((ix - ax) * ex + (iy - ay) * ey) / (L * L);
+  if (u < 0 || u > 1) return;
+  let nx = -ey / L, ny = ex / L; if (s0 < 0) { nx = -nx; ny = -ny; }
+  d.x = ix + nx * d.r; d.y = iy + ny * d.r;
+  const vn = d.vx * nx + d.vy * ny; if (vn < 0) { d.vx -= nx * vn * (1 + d.bCoef * C.wallBC); d.vy -= ny * vn * (1 + d.bCoef * C.wallBC); }
+}
+
 /* Límites de movimiento de un jugador (los usa step() y la predicción del cliente) */
 function clampPlayerBox(geo, p) {
   const bx = geo.boxW - C.playerR, by = geo.boxH - C.playerR;
@@ -211,13 +234,13 @@ function step(G) {
     let dx = inp.dx, dy = inp.dy;
     const m = Math.hypot(dx, dy);
     if (m > 1) { dx /= m; dy /= m; }
-    const a = (inp.kick ? C.kickAcc : C.acc) * (p.human ? 1 : p.diff.speed) * (p.accMul || 1);
+    const a = (inp.kick ? p.kacc0 : p.acc0) * (p.human ? 1 : p.diff.speed) * (p.accMul || 1);
     p.vx += dx * a; p.vy += dy * a;
     if (inp.kick && !p.noKick && !p.noBall) {
       if (p.armed) {
         const ddx = ball.x - p.x, ddy = ball.y - p.y, d = Math.hypot(ddx, ddy);
         if (d > 0 && d - p.r - ball.r < C.kickRange) {
-          const ks = C.kickStr * (p.human ? 1 : (p.diff.kick || 1));
+          const ks = G.phys.kickStr * (p.human ? 1 : (p.diff.kick || 1));
           ball.vx += ddx / d * ks * ball.invMass;
           ball.vy += ddy / d * ks * ball.invMass;
           p.armed = false; p.flash = 10;
@@ -228,6 +251,7 @@ function step(G) {
   }
 
   for (const p of P) { p.x += p.vx; p.y += p.vy; }
+  const bx0 = ball.x, by0 = ball.y;
   ball.x += ball.vx; ball.y += ball.vy;
 
   for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) discDisc(P[i], P[j]);
@@ -236,6 +260,7 @@ function step(G) {
     for (const p of P) discDisc(post, p);
     if (discDisc(post, ball) > 1.5) ev(G, 'wall');
   }
+  for (const s of geo.segs) uncross(ball, bx0, by0, s);
   for (const s of geo.segs) if (collideSeg(ball, s) > 2.5) ev(G, 'wall');
 
   for (const p of P) clampPlayerBox(geo, p);
@@ -306,28 +331,28 @@ function finish(G) {
 
 /* ===== Bots ===== */
 function predictBall(G, steps) {
-  const b = G.ball, g = G.geo;
+  const b = G.ball, g = G.geo, bc = b.bCoef * C.wallBC;
   let x = b.x, y = b.y, vx = b.vx, vy = b.vy;
   const H = g.H - b.r, W = g.W - b.r, mouth = g.gh - b.r;
   for (let i = 0; i < steps; i++) {
     x += vx; y += vy; vx *= C.bDamp; vy *= C.bDamp;
-    if (y > H) { y = H; vy = -vy * 0.5; } else if (y < -H) { y = -H; vy = -vy * 0.5; }
+    if (y > H) { y = H; vy = -vy * bc; } else if (y < -H) { y = -H; vy = -vy * bc; }
     if (Math.abs(y) > mouth) {
-      if (x > W) { x = W; vx = -vx * 0.5; } else if (x < -W) { x = -W; vx = -vx * 0.5; }
+      if (x > W) { x = W; vx = -vx * bc; } else if (x < -W) { x = -W; vx = -vx * bc; }
     }
   }
   return { x, y };
 }
 
 function predictCross(G, ownX, dir) {
-  const b = G.ball, g = G.geo;
+  const b = G.ball, g = G.geo, bc = b.bCoef * C.wallBC;
   if (b.vx * dir > -0.3) return null;
   let x = b.x, y = b.y, vx = b.vx, vy = b.vy;
   const H = g.H - b.r;
   const horizon = clamp(Math.ceil(Math.abs(b.x - ownX) / Math.max(0.3, Math.abs(b.vx)) * 1.6) + 10, 30, 500);
   for (let i = 0; i < horizon; i++) {
     x += vx; y += vy; vx *= C.bDamp; vy *= C.bDamp;
-    if (y > H) { y = H; vy = -vy * 0.5; } else if (y < -H) { y = -H; vy = -vy * 0.5; }
+    if (y > H) { y = H; vy = -vy * bc; } else if (y < -H) { y = -H; vy = -vy * bc; }
     if ((x - ownX) * dir < 0) return Math.abs(y) < g.gh + 6 ? { t: i, y } : null;
   }
   return null;
@@ -354,10 +379,19 @@ function aiUpdate(G, p) {
   const caller = A.chaser ? callerFor(G, p) : null;
   if (caller) {
     const b = G.ball, bd = Math.hypot(b.x - p.x, b.y - p.y) || 1;
+    /* ponerse detrás de la pelota en la línea del pase y salir derecho */
+    let sx = caller.x + caller.vx * 12 - b.x, sy = caller.y + caller.vy * 12 - b.y; const sl = Math.hypot(sx, sy) || 1; sx /= sl; sy /= sl;
+    const R2 = p.r + b.r, al = (p.x - b.x) * sx + (p.y - b.y) * sy, la = (p.x - b.x) * -sy + (p.y - b.y) * sx;
+    let gx, gy;
+    if (al < -R2 * 0.6 && Math.abs(la) < 6) { gx = b.x; gy = b.y; }
+    else if (al < -R2 * 0.6) { gx = b.x - sx * (R2 + 6); gy = b.y - sy * (R2 + 6); }
+    else { const sd = la >= 0 ? 1 : -1; gx = b.x - sx * (R2 + 16) - sy * sd * (R2 + 14); gy = b.y - sy * (R2 + 16) + sx * sd * (R2 + 14); }
+    let mx = gx - p.x, my = gy - p.y; const ml = Math.hypot(mx, my) || 1;
+    p.in.dx = mx / ml - p.vx * 0.15; p.in.dy = my / ml - p.vy * 0.15;
     const ux = (b.x - p.x) / bd, uy = (b.y - p.y) / bd;
     let tx = caller.x + caller.vx * 12 - b.x, ty = caller.y + caller.vy * 12 - b.y; const tl = Math.hypot(tx, ty) || 1;
     const ang = Math.acos(clamp((ux * tx + uy * ty) / tl, -1, 1));
-    p.in.kick = bd - p.r - b.r < C.kickRange + 1 && ang < 0.06 + D.aimErr * 0.05;
+    p.in.kick = bd - p.r - b.r < C.kickRange + 1 && ang < 0.09 + D.aimErr * 0.05;
   }
 }
 
@@ -445,7 +479,7 @@ function aiDecide(G, p) {
   const R = ball.r + p.r;
   let tx, ty;
   if (a < 0) {
-    if (caller ? Math.abs(l) < 5 : (Math.abs(l) < 18 + (-a) * 0.12 || dist < R + 25)) { tx = bp.x; ty = bp.y; }   // para el pase hay que estar bien alineado
+    if (caller ? Math.abs(l) < 8 : (Math.abs(l) < 18 + (-a) * 0.12 || dist < R + 25)) { tx = bp.x; ty = bp.y; }   // para el pase hay que estar bien alineado
     else { const back = 30 + clamp(-a * 0.15, 0, 40); tx = bp.x - sx * back; ty = bp.y - sy * back; }
   } else {
     let side = l >= 0 ? 1 : -1;
@@ -470,7 +504,7 @@ function aiDecide(G, p) {
     for (const q of G.players) {
       if (q.team !== p.team && Math.hypot(q.x - p.x, q.y - p.y) < 36) { pressed = true; break; }
     }
-    const good = caller ? ang < 0.06 + D.aimErr * 0.05 : ((allowed && ang < D.kickTol) || (pressed && ang < 1.2));
+    const good = caller ? ang < 0.09 + D.aimErr * 0.05 : ((allowed && ang < D.kickTol) || (pressed && ang < 1.2));
     A.kick = (safe && good) || Math.random() < D.sloppy;
   }
 }
@@ -491,7 +525,7 @@ const SM = { tables: {}, inv: {}, BPx: new Float64Array(181), BPy: new Float64Ar
 (function () { SM.pw = new Float64Array(401); let v = 1; for (let n = 0; n <= 400; n++) { SM.pw[n] = v; v *= C.pDamp; } })();
 const SM_SHOT = 600;     // lo que vale un gol en la escala de las acciones
 
-function smAcc(p) { return C.acc * (p.human ? 1 : p.diff.speed) * (p.accMul || 1); }
+function smAcc(p) { return (p.acc0 || C.acc) * (p.human ? 1 : p.diff.speed) * (p.accMul || 1); }
 /* tabla: distancia recorrida desde parado en n ticks, y su inversa (distancia -> ticks) */
 function smTable(a) {
   const key = a.toFixed(5);
@@ -519,13 +553,13 @@ function smReach(q, x, y, near) {
 
 /* recorrido de la pelota: llena xs/ys(/vxs/vys) hasta n ticks; devuelve el equipo que hace el gol (o -1) y en qué tick */
 function smSim(G, x, y, vx, vy, n, xs, ys, vxs, vys) {
-  const g = G.geo, r = G.ball.r, H = g.H - r, W = g.W - r, mouth = g.gh - r;
+  const bc = G.ball.bCoef * C.wallBC, g = G.geo, r = G.ball.r, H = g.H - r, W = g.W - r, mouth = g.gh - r;
   xs[0] = x; ys[0] = y; if (vxs) { vxs[0] = vx; vys[0] = vy; }
   for (let i = 1; i <= n; i++) {
     x += vx; y += vy;
-    if (y > H) { y = H; vy = -vy * 0.5; } else if (y < -H) { y = -H; vy = -vy * 0.5; }
+    if (y > H) { y = H; vy = -vy * bc; } else if (y < -H) { y = -H; vy = -vy * bc; }
     if (Math.abs(y) > mouth) {
-      if (x > W) { x = W; vx = -vx * 0.5; } else if (x < -W) { x = -W; vx = -vx * 0.5; }
+      if (x > W) { x = W; vx = -vx * bc; } else if (x < -W) { x = -W; vx = -vx * bc; }
     } else if (x > g.W) { xs[i] = x; ys[i] = y; return { goal: 0, t: i, n: i }; }
     else if (x < -g.W) { xs[i] = x; ys[i] = y; return { goal: 1, t: i, n: i }; }
     vx *= C.bDamp; vy *= C.bDamp;
@@ -726,7 +760,15 @@ function smDecide(G, p) {
   if (shotOnUs && mates.length === 1 && tMe > 3) { block(); return; }
   /* cerca de mi arco no me la juego: si el rival está cerca de la pelota, primero tapo */
   const danger = D.v2 && b.x * dir < -W * 0.3;
-  if ((tOpp + 4 < tMe || (danger && tMe > tOpp - 7)) && G.phase !== 'kickoff') {
+  /* robar: si el rival no la tiene pegada (pelota suelta o quieta a su lado) y llego casi igual, voy a buscarla */
+  let steal = false;
+  if (D.v2 && oppFirst && G.phase !== 'kickoff') {
+    const od = Math.hypot(oppFirst.x - b.x, oppFirst.y - b.y), bs = Math.hypot(b.vx, b.vy);
+    const loose = od > oppFirst.r + b.r + 7, still = bs < 0.6 && Math.hypot(oppFirst.vx, oppFirst.vy) < 0.8;
+    const myGoalSide = (p.x - b.x) * dir < -4;
+    if (loose && still && myGoalSide && tMe < tOpp + 14) steal = true;   // solo si está todo quieto (si no, mejor tapar)
+  }
+  if (!steal && (tOpp + 4 < tMe || (danger && tMe > tOpp - 7)) && G.phase !== 'kickoff') {
     const tp = Math.min(Math.round(tOpp), nb), px = SM.BPx[tp], py = SM.BPy[tp];
     const far = Math.hypot(px - ownX, py);
     goalSide(px, py, clamp(far * 0.3, 32, 70));
@@ -765,7 +807,7 @@ function smDecide(G, p) {
   let bestU = null, bestV = -1e9, bestKind = '';
   for (const [tx, ty] of targets) {
     let dx = tx - bx, dy = ty - by; const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
-    const sol = smSolve(bvx, bvy, dx, dy, C.kickStr * (p.diff.kick || 1));
+    const sol = smSolve(bvx, bvy, dx, dy, G.phys.kickStr * (p.diff.kick || 1) * b.invMass);
     if (!sol) continue;
     const e = smEval(G, p, bx, by, sol.s * dx, sol.s * dy);
     if (caller && e.kind === 'pass' && e.who === caller) e.v += e.close < 38 ? 360 : 40;     // me la pidieron: al pie
@@ -832,7 +874,7 @@ function smTick(G, p) {
   let kick = false;
   const b = G.ball, dx0 = b.x - p.x, dy0 = b.y - p.y, d0 = Math.hypot(dx0, dy0);
   if (d0 > 0 && d0 - p.r - b.r < C.kickRange) {
-    const ks = C.kickStr * (p.diff.kick || 1), vx = b.vx + dx0 / d0 * ks, vy = b.vy + dy0 / d0 * ks;
+    const ks = G.phys.kickStr * (p.diff.kick || 1) * b.invMass, vx = b.vx + dx0 / d0 * ks, vy = b.vy + dy0 / d0 * ks;
     const e = smEval(G, p, b.x, b.y, vx, vy), hold = smHold(G, p, b.x, b.y, 0);
     const plan = A.plan && A.plan !== 'carry' ? A.planV : -1e9;
     /* pelota trabada contra un rival: no quedarse empujando, sacarla */
@@ -862,4 +904,4 @@ function smTick(G, p) {
   p.in.dx = clamp(ix, -1, 1); p.in.dy = clamp(iy, -1, 1); p.in.kick = kick;
 }
 
-if (typeof module !== 'undefined') module.exports = { predictCross, totals, callForBall, C, PITCHES, PITCH_LIMITS, DIFF, makeGeo, createGame, step };
+if (typeof module !== 'undefined') module.exports = { predictCross, totals, callForBall, PHYS, C, PITCHES, PITCH_LIMITS, DIFF, makeGeo, createGame, step };

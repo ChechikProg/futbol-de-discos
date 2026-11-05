@@ -2,9 +2,9 @@
 
 Fútbol de discos al estilo HaxBall en el navegador. Se juega solo, sin servidor ni conexión: todo corre en tu navegador.
 
-- **Contra la máquina**: 1v1, 2v2 o 3v3, cinco dificultades (de Fácil a Imposible), cancha a elegir (chica, clásica, grande, enorme o personalizada).
+- **Contra la máquina**: 1v1, 2v2 o 3v3, cinco dificultades (de Fácil a Imposible), cancha a elegir (Futsal Bazinga por defecto, chica, clásica, grande, enorme o personalizada).
 - **Mundial**: elegís una selección, se sortean los grupos y jugás hasta la final. Formato de 48 selecciones (12 grupos, pasan los mejores terceros) o de 32. Perder en eliminación directa te saca del torneo. La dificultad de los rivales es configurable e incluye un modo progresivo.
-- **Copa Libertadores**: elegís un club entre 32 (basados en la edición 2026, con River y Racing). 8 grupos de 4 a ida y vuelta (6 partidos, 3 de local), pasan los 2 primeros. Octavos, cuartos y semifinales a ida y vuelta por global (sin gol de visitante); si en la vuelta el global queda igualado, gol de oro de 1 minuto y penales. Final a partido único en el Estadio Centenario. Se puede elegir el tamaño de la cancha (automático según la cantidad de jugadores, del estadio, grande o enorme). Cada club juega de local en su estadio (La Bombonera, el Más Monumental, El Cilindro, el Maracanã para los brasileños, el Hernando Siles con pista, etc.; los demás usan tribunas estándar con el nombre de su estadio) y los bots llevan nombres de jugadores reales del plantel.
+- **Copa Libertadores**: elegís un club entre 32 (basados en la edición 2026, con River y Racing). 8 grupos de 4 a ida y vuelta (6 partidos, 3 de local), pasan los 2 primeros. Octavos, cuartos y semifinales a ida y vuelta por global (sin gol de visitante); si en la vuelta el global queda igualado, gol de oro de 1 minuto y penales. Final a partido único en el Estadio Centenario. Se puede elegir el tamaño de la cancha (Futsal Bazinga según la cantidad de jugadores, grande, enorme o la clásica del estadio). Cada club juega de local en su estadio (La Bombonera, el Más Monumental, El Cilindro, el Maracanã para los brasileños, el Hernando Siles con pista, etc.; los demás usan tribunas estándar con el nombre de su estadio) y los bots llevan nombres de jugadores reales del plantel.
 - **Pedir la pelota**: en 2v2 y 3v3, con la tecla `E` (o el botón *Pedir* en el celular) tus compañeros de la máquina buscan pasártela al pie.
 - **Gol de oro y penales**: si un partido termina empatado, se juega un gol de oro de 1 minuto (el primero que convierte gana). Si nadie convierte, se define por penales al estilo del mapa de penales de HaxBall: la pelota está en el punto penal, el que patea arranca atrás, corre y le pega con la física del juego, y el arquero (un disco pegado a la línea, que no puede adelantarse ni patear) trata de taparla. El que patea tiene un solo toque: después del primer contacto con la pelota queda quieto y ya no puede tocarla. Son cinco tiros cada uno y, si siguen igualados, muerte súbita.
   En el Mundial, la fase de grupos admite empates como siempre: ni gol de oro ni penales. Solo se juegan en las llaves.
@@ -44,7 +44,11 @@ build.js           junta todo en public/index.html
 test/              pruebas (bots, Mundial, penales, navegador)
 ```
 
-`npm test` corre las pruebas del Mundial, la Libertadores y los penales. Las de navegador (`test/browser1.js`, `test/browser_pens.js`, `test/browser_lib.js`) usan Playwright y esperan el servidor en el puerto 3100 (`PORT=3100 npm start`).
+`npm test` corre las pruebas del Mundial, la Libertadores y los penales. Las de navegador (`test/browser1.js`, `test/browser_pens.js`, `test/browser_lib.js`, `test/browser_call.js`) usan Playwright y esperan el servidor en el puerto 3100 (`PORT=3100 npm start`).
+
+## Física y canchas de futsal (Bazinga)
+
+Los partidos usan la física de los mapas de futsal de Bazinga: pelota chica y liviana (radio 6,25, más rápida al patearla), jugadores que no rebotan entre sí, aceleración 0,11 y 0,083 con patear apretado. La cancha cambia con la cantidad de jugadores (x1, x2, x3; las medidas de x1 a x3 están escaladas a partir del mapa x4, que es el que está publicado). Los penales mantienen la física clásica. Fuentes: [física de Bazinga](https://gist.github.com/EduMejorado/375a01d16e89fa65807ee73ef8ae1417), [Futsal x4 by Bazinga](https://haxmaps.com/map/13599), [Futsal x3](https://haxmaps.com/map/8379).
 
 ## El nivel Imposible
 
@@ -64,5 +68,5 @@ Los planteles salen de las páginas de plantel de BeSoccer (noviembre de 2026) y
 
 ## Límites conocidos
 
-- Las medidas de la física son una aproximación de la cancha clásica de HaxBall, no una copia exacta.
+- Las medidas de la física son una aproximación de los mapas de HaxBall, no una copia exacta.
 - El progreso del Mundial se guarda en el navegador (localStorage): no se comparte entre dispositivos.

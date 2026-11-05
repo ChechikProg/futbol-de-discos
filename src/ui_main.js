@@ -1,6 +1,7 @@
 'use strict';
 /* ===== Inicio, partido contra la máquina y arranque ===== */
-const LOCAL = Object.assign({ size: '1', diff: 'normal', side: '0', time: '3', goals: '3', penFirst: 'r', pitch: { preset: 'classic' } }, store.get('local', {}));
+const LOCAL = Object.assign({ size: '1', diff: 'normal', side: '0', time: '3', goals: '3', penFirst: 'r', pitch: { preset: 'futsal' } }, store.get('local', {}));
+if (!LOCAL.fv) { LOCAL.pitch = { preset: 'futsal' }; LOCAL.fv = 1; }   // las canchas de futsal de Bazinga pasan a ser las de siempre
 LOCAL.pitch = pitchValid(LOCAL.pitch);
 const saveLocal = () => store.set('local', LOCAL);
 
@@ -31,7 +32,7 @@ function startLocal() {
   saveLocal();
   launchGame({
     size: +LOCAL.size, diff: LOCAL.diff, humanTeam: +LOCAL.side, timeLimit: +LOCAL.time, scoreLimit: +LOCAL.goals,
-    pitch: pitchResolve(LOCAL.pitch)
+    pitch: pitchResolve(LOCAL.pitch, +LOCAL.size)
   }, 'local', localOver, () => [
     { text: 'Reiniciar partido', fn: startLocal },
     { text: 'Cambiar opciones', fn: () => { onLocalEnd = null; setState('idle'); showScreen('local'); } }

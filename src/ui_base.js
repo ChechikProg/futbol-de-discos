@@ -38,8 +38,11 @@ const TAU = Math.PI * 2;
 const SND = { on: store.get('sound', true) !== false };
 
 /* ---------- Cancha ---------- */
-function pitchResolve(spec) {
-  if (spec && PITCHES[spec.preset]) { const q = PITCHES[spec.preset]; return { W: q.W, H: q.H, gh: q.gh }; }
+function pitchResolve(spec, size) {
+  if (spec && PITCHES[spec.preset]) {
+    const q = PITCHES[spec.preset], s = q.bySize && size ? q.bySize[size] || q : q;   // la de futsal cambia según la cantidad de jugadores
+    return { W: s.W, H: s.H, gh: s.gh, kr: s.kr };
+  }
   if (spec && spec.W) return { W: +spec.W, H: +spec.H, gh: +spec.gh };
   return { W: 370, H: 170, gh: 64 };
 }
@@ -49,7 +52,7 @@ function pitchValid(spec) {
     const H = clampN(Math.round(+spec.H), PITCH_LIMITS.H[0], PITCH_LIMITS.H[1]);
     return { W: clampN(Math.round(+spec.W), PITCH_LIMITS.W[0], PITCH_LIMITS.W[1]), H, gh: clampN(Math.round(+spec.gh), PITCH_LIMITS.gh[0], Math.min(PITCH_LIMITS.gh[1], H - 25)) };
   }
-  return { preset: 'classic' };
+  return { preset: 'futsal' };
 }
 function pitchText(spec) {
   if (spec && PITCHES[spec.preset]) return PITCHES[spec.preset].label;

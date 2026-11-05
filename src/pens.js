@@ -38,7 +38,7 @@ const PEN = (() => {
   /* o: { diff, kits:[color del que patea, color del arquero], names:[patea, ataja] } */
   function newKick(o) {
     const G = K.createGame({
-      size: 1, diff: o.diff, humanTeam: -1, timeLimit: 0, scoreLimit: 0, manual: true,
+      size: 1, diff: o.diff, humanTeam: -1, timeLimit: 0, scoreLimit: 0, manual: true, physics: 'classic',
       pitch: { W: 520, H: 240, gh: 100 }, kits: o.kits, teamNames: o.names,
       roster: [{ team: 0, human: true, name: o.names[0] }, { team: 1, human: true, name: o.names[1] }]
     });

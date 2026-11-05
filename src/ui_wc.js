@@ -1,6 +1,7 @@
 'use strict';
 /* ===== Pantallas del modo Mundial (local, contra la máquina) ===== */
-const WCCFG = Object.assign({ format: '48', diff: 'normal', minutes: '2', size: '1', pitch: { preset: 'classic' }, team: 'ARG' }, store.get('wccfg', {}));
+const WCCFG = Object.assign({ format: '48', diff: 'normal', minutes: '2', size: '1', pitch: { preset: 'futsal' }, team: 'ARG' }, store.get('wccfg', {}));
+if (!WCCFG.fv) { WCCFG.pitch = { preset: 'futsal' }; WCCFG.fv = 1; }
 WCCFG.pitch = pitchValid(WCCFG.pitch);
 let wc = null;
 let hubTab = 'match';
@@ -244,7 +245,7 @@ function wcPlay() {
   const diff = WC.diffFor(wc);
   launchGame({
     size: wc.size, diff, humanTeam: 0, timeLimit: wc.minutes, scoreLimit: 0, allowDraw: p.kind === 'group',
-    pitch: pitchResolve(wc.pitch), teamNames: [WC.BY[wc.user].n, WC.BY[oppC].n], teamCodes: [wc.user, oppC], kits,
+    pitch: pitchResolve(wc.pitch, wc.size), teamNames: [WC.BY[wc.user].n, WC.BY[oppC].n], teamCodes: [wc.user, oppC], kits,
     subtitle: p.kind === 'group' ? 'Grupo ' + wc.groups[p.gi].n + ' · fecha ' + (wc.md + 1) : p.label
   }, 'wc', () => wcMatchOver(p, oppC), () => [
     { text: 'Abandonar partido', fn: () => { onLocalEnd = null; setState('idle'); renderHub(); showScreen('wchub'); } }
