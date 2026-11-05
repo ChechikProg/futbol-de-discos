@@ -59,6 +59,8 @@ Tiene la misma velocidad y la misma patada que el jugador: la diferencia es solo
 - Tiene en cuenta que una persona tarda unos 11 ticks (≈0,2 s) en reaccionar a una patada nueva, así que remata y pasa donde no llegás a reaccionar.
 - Defiende en la bisectriz del ángulo entre la pelota y los palos, a la distancia en la que su cuerpo tapa todo el arco; si lo pasan, vuelve a la boca del arco; cerca de su arco no se la juega y nunca la manda hacia su propio arco.
 - Gambetea amagando: si el rival se tira para un lado, sale para el otro.
+- Tiros seguros: apunta entre 13 puntos del arco y solo remata de lejos si el tiro entra aunque el arquero reaccione rápido.
+- Autopases por la pared contra jugadores humanos: tira la pelota contra la banda por delante del rival y la busca del otro lado.
 - Presiona: cuando el rival tiene la pelota se le pega del lado de su arco y la disputa; remata apenas tiene un buen ángulo.
 - En el saque del rival se para en la línea pelota-arco; si viene un tiro, llega adelante de la pelota (nunca la empuja de atrás para adentro) y pegada a su arco despeja en vez de conducir.
 

@@ -27,7 +27,7 @@ const DIFF = {
   normal: { key: 'normal', label: 'Normal',  think: 11, speed: 0.86, predict: 0.45, aimErr: 0.22,  kickTol: 0.5,  sloppy: 0.05, gkSkill: 0.65 },
   hard:   { key: 'hard',   label: 'Difícil', think: 5,  speed: 0.96, predict: 0.85, aimErr: 0.08,  kickTol: 0.28, sloppy: 0.01, gkSkill: 0.9 },
   expert: { key: 'expert', label: 'Experto', think: 2,  speed: 1,    predict: 1,    aimErr: 0.015, kickTol: 0.14, sloppy: 0,    gkSkill: 1 },
-  impossible: { key: 'impossible', label: 'Imposible', think: 1, speed: 1, kick: 1, v2: true, rt: 11, predict: 1, aimErr: 0, kickTol: 0.06, sloppy: 0, gkSkill: 1, smart: true, press: true, attack: true }
+  impossible: { key: 'impossible', label: 'Imposible', think: 1, speed: 1, kick: 1, v2: true, rt: 11, predict: 1, aimErr: 0, kickTol: 0.06, sloppy: 0, gkSkill: 1, smart: true, press: true, attack: true, guard: false, aim: true, wall: true, sure: true }
 };
 
 /* Posiciones de saque para el equipo de la izquierda, en la cancha clásica */
@@ -616,7 +616,7 @@ function smEval(G, p, bx, by, vx, vy) {
     for (const q of G.players) {
       if (q.team === team) continue;
       const near = q.r + br - 3;
-      const lag = smLag(p, q);
+      const lag = smLag(p, q) * (p.diff.sure ? 0.45 : 1);   // en el tiro no contar con que el arquero reaccione tarde: tirar solo si entra igual
       for (let k = 2; k <= n; k += 2) { const mk = smReach(q, SM.SPx[k], SM.SPy[k], near) + lag - k; if (mk < m) m = mk; }
     }
     const pg = smSig((m + 1.5) / 2.2);
@@ -808,12 +808,24 @@ function smDecide(G, p) {
       return;
     }
   }
+  /* pelota disputada: si el rival la puede patear ya y yo todavía no, primero tapo la línea a mi arco */
+  if (D.guard && oppFirst && G.phase === 'play') {
+    const od = Math.hypot(oppFirst.x - b.x, oppFirst.y - b.y) - oppFirst.r - b.r, md = Math.hypot(p.x - b.x, p.y - b.y) - p.r - b.r;
+    const far = Math.hypot(b.x - ownX, b.y), gsNow = ((p.x - b.x) * (ownX - b.x) + (p.y - b.y) * -b.y) / (far || 1);
+    /* también si llegamos casi juntos: se va a la pelota por el lado de mi arco, no por el costado */
+    if (md > C.kickRange + 1 && gsNow < R && (od < C.kickRange + 5 || tOpp < tMe + 12)) {
+      const tp = clamp(Math.round(Math.min(tMe, tOpp)), 0, nb);
+      goalSide(SM.BPx[tp], SM.BPy[tp], R + 4); A.mode = 'seek'; A.plan = 'guard'; return;
+    }
+  }
   /* tengo la pelota (o llego primero): evaluar acciones desde donde la voy a tomar */
   const t0 = clamp(Math.round(tMe), 0, nb);
   const bx = SM.BPx[t0], by = SM.BPy[t0], bvx = SM.BPvx[t0], bvy = SM.BPvy[t0];
   const Hc = H - b.r, targets = [], caller = callerFor(G, p);
   if (caller) for (const lead of [0, 8, 16]) targets.push([caller.x + caller.vx * lead, caller.y + caller.vy * lead]);
-  for (const f of [-0.82, -0.55, -0.28, 0, 0.28, 0.55, 0.82]) targets.push([oppX + dir * 12, f * gh]);
+  for (const f of (D.aim ? [-0.86, -0.72, -0.58, -0.44, -0.3, -0.15, 0, 0.15, 0.3, 0.44, 0.58, 0.72, 0.86] : [-0.82, -0.55, -0.28, 0, 0.28, 0.55, 0.82])) targets.push([oppX + dir * 12, f * gh]);
+  /* autopase por la pared: tirarla contra la banda por delante del rival y buscarla del otro lado */
+  if (D.wall && opps.some(q => q.human)) for (const fx of [50, 90, 140, 200]) for (const sy of [-1, 1]) targets.push([bx + dir * fx * g.kx, sy * (H + 20)]);
   for (const f of [-0.5, 0.5]) { targets.push([oppX + dir * 12, 2 * Hc - f * gh]); targets.push([oppX + dir * 12, -2 * Hc - f * gh]); }
   for (const q of mates) {
     if (q === p) continue;
@@ -897,6 +909,7 @@ function smTick(G, p) {
   if (d0 > 0 && d0 - p.r - b.r < C.kickRange) {
     const ks = G.phys.kickStr * (p.diff.kick || 1) * b.invMass, vx = b.vx + dx0 / d0 * ks, vy = b.vy + dy0 / d0 * ks;
     const e = smEval(G, p, b.x, b.y, vx, vy), hold = smHold(G, p, b.x, b.y, 0);
+    A.lastE = e;
     const plan = A.plan && A.plan !== 'carry' ? A.planV : -1e9;
     /* pelota trabada contra un rival: no quedarse empujando, sacarla */
     let contested = false;
@@ -905,7 +918,7 @@ function smTick(G, p) {
     const caller = callerFor(G, p);
     if (e.kind === 'own') kick = false;
     else if (caller && e.kind === 'pass' && e.who === caller && e.close < 38 && e.ps > 0.3) kick = true;   // pase al pie del que la pidió
-    else if (e.kind === 'shot' && e.pg > (D.attack ? 0.18 : 0.3)) kick = true;
+    else if (e.kind === 'shot' && e.pg > (D.sure ? (Math.abs(b.x - (p.team === 0 ? 1 : -1) * G.geo.W) < 130 ? 0.3 : 0.55) : D.attack ? 0.18 : 0.3)) kick = true;
     else if (D.press && contested && e.kind !== 'blocked' && e.v > hold - 40) kick = true;   // disputa: sacarla para adelante
     else if (e.v > hold + 6 && e.v > plan - 25) kick = true;
     else if (A.stuck > 25 && (e.v > hold - 70 || A.stuck > 45)) kick = true;
@@ -924,6 +937,7 @@ function smTick(G, p) {
     if (wl > 0.02) { ix = wx / wl * Math.min(1, wl / (a * 2)); iy = wy / wl * Math.min(1, wl / (a * 2)); }
   } else { ix = -p.vx * 4; iy = -p.vy * 4; }
   p.in.dx = clamp(ix, -1, 1); p.in.dy = clamp(iy, -1, 1); p.in.kick = kick;
+  if (D.digital) { const q = v => (v > 0.38 ? 1 : v < -0.38 ? -1 : 0); p.in.dx = q(p.in.dx); p.in.dy = q(p.in.dy); }   // como un teclado (solo para pruebas)
 }
 
 if (typeof module !== 'undefined') module.exports = { predictCross, totals, callForBall, PHYS, C, PITCHES, PITCH_LIMITS, DIFF, makeGeo, createGame, step };
