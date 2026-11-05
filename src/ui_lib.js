@@ -1,6 +1,6 @@
 'use strict';
 /* ===== Pantallas del modo Copa Libertadores ===== */
-const LIBCFG = Object.assign({ diff: 'normal', minutes: '2', size: '1', team: 'BOC' }, store.get('libcfg', {}));
+const LIBCFG = Object.assign({ diff: 'normal', minutes: '2', size: '1', field: 'auto', team: 'BOC' }, store.get('libcfg', {}));
 if (!LIB.BY[LIBCFG.team]) LIBCFG.team = 'BOC';
 let lib = null;
 let libTab = 'match';
@@ -22,8 +22,22 @@ const LIB_GROUPS = [
       prog: 'Empieza fácil en la fase de grupos y llega a Experto en semifinales y la final.'
     } },
   { key: 'minutes', label: 'Duración de cada partido', opts: [['1', '1 min'], ['2', '2 min'], ['3', '3 min'], ['5', '5 min']] },
-  { key: 'size', label: 'Jugadores por equipo', opts: [['1', '1 vs 1'], ['2', '2 vs 2'], ['3', '3 vs 3']] }
+  { key: 'size', label: 'Jugadores por equipo', opts: [['1', '1 vs 1'], ['2', '2 vs 2'], ['3', '3 vs 3']] },
+  { key: 'field', label: 'Tamaño de cancha', opts: [['auto', 'Automático'], ['stadium', 'Del estadio'], ['big', 'Grande'], ['huge', 'Enorme']],
+    hints: {
+      auto: 'Según los jugadores: la medida del estadio en 1v1, un 20% más grande en 2v2 y un 40% más en 3v3.',
+      stadium: 'La medida de cada estadio (la Bombonera es más chica, el Maracanã más grande).',
+      big: 'Cada estadio un 30% más grande.', huge: 'Cada estadio un 60% más grande. Ideal para 3v3.'
+    } }
 ];
+/* medida de la cancha para un partido: la del estadio, agrandada según la opción */
+function libPitch(base, size) {
+  const k = LIBCFG.field === 'stadium' ? 1 : LIBCFG.field === 'big' ? 1.3 : LIBCFG.field === 'huge' ? 1.6 : [1, 1, 1.2, 1.4][size] || 1;
+  const W = clampN(Math.round(base.W * k), PITCH_LIMITS.W[0], PITCH_LIMITS.W[1]);
+  const H = clampN(Math.round(base.H * k), PITCH_LIMITS.H[0], PITCH_LIMITS.H[1]);
+  const gh = clampN(Math.round(base.gh * Math.sqrt(k)), PITCH_LIMITS.gh[0], Math.min(PITCH_LIMITS.gh[1], H - 25));
+  return { W, H, gh };
+}
 
 function libChip(c, big) {
   const k = LIB.BY[c].k;
@@ -50,7 +64,7 @@ function buildLibSetup() {
   for (const def of LIB_GROUPS) grid.append(segGroup('lb', def, LIBCFG, saveLibCfg));
   c.append(grid);
   c.append(h('button', { class: 'btn go', type: 'button', text: lib ? 'Nueva copa: elegir equipo' : 'Elegir mi equipo', onclick: () => { buildLibTeam(); showScreen('libteam'); } }));
-  c.append(h('p', { class: 'fine', text: 'Cada equipo juega de local en su estadio. Los jugadores de cada plantel tienen nombres de futbolistas reales del club; la valoración de cada equipo es propia.' }));
+  c.append(h('p', { class: 'fine', text: 'El tamaño de cancha se puede cambiar en cualquier momento: vale desde el próximo partido. Cada equipo juega de local en su estadio. Los jugadores de cada plantel tienen nombres de futbolistas reales del club; la valoración de cada equipo es propia.' }));
 }
 
 /* ---------- Elegir equipo ---------- */
@@ -112,7 +126,7 @@ function libMatchTab(body) {
       h('p', { class: 'eyebrow', text: p.label + ' · ' + p.stadium.n }),
       h('div', { class: 'vs' }, side(p.h, p.final ? 'Neutral' : 'Local'), h('div', { class: 'vsx', text: 'vs' }), side(p.a, p.final ? 'Neutral' : 'Visitante')),
       ida,
-      h('p', { class: 'meta', text: 'Rival: ' + diffLabel(d) + ' · ' + lib.size + ' vs ' + lib.size + ' · ' + lib.minutes + ' min' + rule }),
+      h('p', { class: 'meta', text: 'Rival: ' + diffLabel(d) + ' · ' + lib.size + ' vs ' + lib.size + ' · ' + lib.minutes + ' min · cancha ' + ({ auto: 'automática', stadium: 'del estadio', big: 'grande', huge: 'enorme' }[LIBCFG.field] || 'automática') + rule }),
       h('p', { class: 'meta', text: 'Tu equipo: Vos' + (lib.size > 1 ? ', ' + LIB.BY[me].p.slice(0, lib.size - 1).join(', ') : '') + ' · Rival: ' + LIB.BY[opp].p.slice(0, lib.size).join(', ') }),
       h('div', { class: 'row' },
         h('button', { class: 'btn go', type: 'button', text: 'Jugar partido', onclick: libPlay }),
@@ -235,7 +249,7 @@ function libPlay() {
   for (let i = 0; i < size; i++) roster.push({ team: 1, human: false, name: LIB.BY[opp].p[i] });
   launchGame({
     size, diff: LIB.diffFor(lib), humanTeam: 0, timeLimit: lib.minutes, scoreLimit: 0, allowDraw: !p.decisive, agg,
-    pitch: p.stadium.pitch, stadium: p.stadium, roster,
+    pitch: libPitch(p.stadium.pitch, size), stadium: p.stadium, roster,
     teamNames: [libName(me), libName(opp)], teamCodes: [me, opp], kits,
     subtitle: p.label + ' · ' + p.stadium.n
   }, 'lib', () => libMatchOver(p, opp), () => [

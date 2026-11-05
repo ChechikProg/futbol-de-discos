@@ -125,8 +125,9 @@ function buildHome() {
     h('summary', { text: 'Controles' }),
     h('div', null, h('b', { text: 'Mover' }), h('kbd', { text: 'W' }), h('kbd', { text: 'A' }), h('kbd', { text: 'S' }), h('kbd', { text: 'D' }), ' o flechas'),
     h('div', null, h('b', { text: 'Patear' }), h('kbd', { text: 'X' }), ' o ', h('kbd', { text: 'Espacio' }), '. Mantenelo apretado y patea al tocar la pelota.'),
+    h('div', null, h('b', { text: 'Pedir' }), h('kbd', { text: 'E' }), ' en 2v2 y 3v3: tus compañeros te pasan la pelota.'),
     h('div', null, h('b', { text: 'Pausa' }), h('kbd', { text: 'P' }), ' o ', h('kbd', { text: 'Esc' })),
-    h('div', null, h('b', { text: 'Celular' }), 'Joystick a la izquierda y botón a la derecha. Jugá en horizontal.')));
+    h('div', null, h('b', { text: 'Celular' }), 'Joystick a la izquierda; Patear y Pedir a la derecha. Jugá en horizontal.')));
   c.append(h('button', { class: 'btn sm soundbtn', type: 'button', text: 'Sonido: ' + (SND.on ? 'sí' : 'no'), onclick: e => { SND.on = !SND.on; store.set('sound', SND.on); e.target.textContent = 'Sonido: ' + (SND.on ? 'sí' : 'no'); } }));
 }
 

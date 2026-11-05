@@ -240,6 +240,13 @@ kbd { font: 600 12px var(--f-display); color: var(--fg); background: var(--panel
   background: rgba(255, 255, 255, .12); color: #fff; font: 700 15px var(--f-display); letter-spacing: .06em; text-transform: uppercase;
 }
 #kickBtn.on { background: rgba(255, 255, 255, .5); border-color: #fff; color: #111; }
+#callBtn {
+  position: fixed; pointer-events: auto; touch-action: none;
+  right: calc(max(16px, env(safe-area-inset-right, 0px)) + 20px); bottom: calc(max(16px, env(safe-area-inset-bottom, 0px)) + 124px);
+  width: 72px; height: 72px; border-radius: 50%; border: 3px solid rgba(199, 230, 189, .6);
+  background: rgba(199, 230, 189, .12); color: #e9f0ea; font: 700 13px var(--f-display); letter-spacing: .06em; text-transform: uppercase;
+}
+#callBtn.on { background: rgba(199, 230, 189, .55); color: #111; }
 
 @media (min-width: 700px) {
   .groups { grid-template-columns: 1fr 1fr; }
@@ -268,6 +275,7 @@ kbd { font: 600 12px var(--f-display); color: var(--fg); background: var(--panel
 <div id="touch" hidden>
   <div id="stickBase"><div id="stickKnob"></div></div>
   <button id="kickBtn" type="button">Patear</button>
+  <button id="callBtn" type="button">Pedir</button>
 </div>
 <script>
 'use strict';
@@ -387,8 +395,21 @@ function resetKickoff(G, kickTeam) {
 
 function ev(G, t) { if (G.events.length < 64) G.events.push(t); }
 
+/* pedir la pelota: los compañeros de la máquina buscan pasársela al que la pidió (dura 2 segundos) */
+function callForBall(G, p) {
+  if (!p || G.nTeam[p.team] < 2) return false;
+  G.call = { p, until: G.tick + 120 };
+  return true;
+}
+function callerFor(G, p) {
+  const c = G.call;
+  if (!c || G.tick > c.until || c.p === p || c.p.team !== p.team) return null;
+  return c.p;
+}
+
 function touchBall(G, p) {
   G.lastTouch = p;
+  if (G.call && (G.call.p === p || G.call.p.team !== p.team)) G.call = null;
   if (G.phase === 'kickoff') G.phase = 'play';
 }
 
@@ -609,6 +630,15 @@ function aiUpdate(G, p) {
     if (A.precise) { dx -= p.vx * 0.5; dy -= p.vy * 0.5; }
   }
   p.in.dx = dx; p.in.dy = dy; p.in.kick = A.kick;
+  /* pase pedido: se decide en cada tick, para patear justo cuando la pelota sale hacia el compañero */
+  const caller = A.chaser ? callerFor(G, p) : null;
+  if (caller) {
+    const b = G.ball, bd = Math.hypot(b.x - p.x, b.y - p.y) || 1;
+    const ux = (b.x - p.x) / bd, uy = (b.y - p.y) / bd;
+    let tx = caller.x + caller.vx * 12 - b.x, ty = caller.y + caller.vy * 12 - b.y; const tl = Math.hypot(tx, ty) || 1;
+    const ang = Math.acos(clamp((ux * tx + uy * ty) / tl, -1, 1));
+    p.in.kick = bd - p.r - b.r < C.kickRange + 1 && ang < 0.06 + D.aimErr * 0.05;
+  }
 }
 
 function aiDecide(G, p) {
@@ -683,7 +713,10 @@ function aiDecide(G, p) {
   }
   let aimY = gk && gd < 140 * kx ? (gk.y > 0 ? -gh * 0.66 : gh * 0.66) : (ball.y > 0 ? -gh * 0.55 : gh * 0.55);
   aimY += rnd(-1, 1) * D.aimErr * gh * 2.2;
-  let sx = oppX - bp.x, sy = aimY - bp.y;
+  const caller = callerFor(G, p);
+  let aimX = oppX;
+  if (caller) { aimX = caller.x + caller.vx * 12; aimY = caller.y + caller.vy * 12; }   // me la pidieron: apuntar al compañero
+  let sx = aimX - bp.x, sy = aimY - bp.y;
   const sl = Math.hypot(sx, sy) || 1; sx /= sl; sy /= sl;
   const nx = -sy, ny = sx;
 
@@ -692,7 +725,7 @@ function aiDecide(G, p) {
   const R = ball.r + p.r;
   let tx, ty;
   if (a < 0) {
-    if (Math.abs(l) < 18 + (-a) * 0.12 || dist < R + 25) { tx = bp.x; ty = bp.y; }
+    if (caller ? Math.abs(l) < 5 : (Math.abs(l) < 18 + (-a) * 0.12 || dist < R + 25)) { tx = bp.x; ty = bp.y; }   // para el pase hay que estar bien alineado
     else { const back = 30 + clamp(-a * 0.15, 0, 40); tx = bp.x - sx * back; ty = bp.y - sy * back; }
   } else {
     let side = l >= 0 ? 1 : -1;
@@ -712,12 +745,12 @@ function aiDecide(G, p) {
     const ang = Math.acos(clamp(ux * sx + uy * sy, -1, 1));
     const toGoal = Math.abs(oppX - ball.x);
     const allowed = toGoal < 380 * kx || ball.x * dir < -20;
-    const safe = !(ux * dir < -0.4 && ball.x * dir < -W * 0.54 && Math.abs(ball.y) < H * 0.65);
+    const safe = !!caller || !(ux * dir < -0.4 && ball.x * dir < -W * 0.54 && Math.abs(ball.y) < H * 0.65);
     let pressed = false;
     for (const q of G.players) {
       if (q.team !== p.team && Math.hypot(q.x - p.x, q.y - p.y) < 36) { pressed = true; break; }
     }
-    const good = (allowed && ang < D.kickTol) || (pressed && ang < 1.2);
+    const good = caller ? ang < 0.06 + D.aimErr * 0.05 : ((allowed && ang < D.kickTol) || (pressed && ang < 1.2));
     A.kick = (safe && good) || Math.random() < D.sloppy;
   }
 }
@@ -845,7 +878,12 @@ function smEval(G, p, bx, by, vx, vy) {
     }
     if (Math.min(tUs, tThem) <= k || k >= n - 1) {
       const ps = smSig((tThem - tUs) / 3);
-      return { v: ps * smPos(G, team, x, y) - (1 - ps) * smDanger(G, team, x, y), kind: who === p ? 'space' : 'pass', ps, x, y, who };
+      let close = 1e9;
+      if (who && who !== p && G.call && G.call.p === who) {
+        /* qué tan cerca le pasa la pelota al que la pidió (pase al pie) */
+        for (let j = 1; j <= n; j += 2) close = Math.min(close, Math.hypot(SM.SPx[j] - who.x - who.vx * j * 0.5, SM.SPy[j] - who.y - who.vy * j * 0.5));
+      }
+      return { v: ps * smPos(G, team, x, y) - (1 - ps) * smDanger(G, team, x, y), kind: who === p ? 'space' : 'pass', ps, x, y, who, close };
     }
   }
   return { v: 0, kind: 'none' };
@@ -992,7 +1030,8 @@ function smDecide(G, p) {
   /* tengo la pelota (o llego primero): evaluar acciones desde donde la voy a tomar */
   const t0 = clamp(Math.round(tMe), 0, nb);
   const bx = SM.BPx[t0], by = SM.BPy[t0], bvx = SM.BPvx[t0], bvy = SM.BPvy[t0];
-  const Hc = H - b.r, targets = [];
+  const Hc = H - b.r, targets = [], caller = callerFor(G, p);
+  if (caller) for (const lead of [0, 8, 16]) targets.push([caller.x + caller.vx * lead, caller.y + caller.vy * lead]);
   for (const f of [-0.82, -0.55, -0.28, 0, 0.28, 0.55, 0.82]) targets.push([oppX + dir * 12, f * gh]);
   for (const f of [-0.5, 0.5]) { targets.push([oppX + dir * 12, 2 * Hc - f * gh]); targets.push([oppX + dir * 12, -2 * Hc - f * gh]); }
   for (const q of mates) {
@@ -1009,6 +1048,7 @@ function smDecide(G, p) {
     const sol = smSolve(bvx, bvy, dx, dy, C.kickStr * (p.diff.kick || 1));
     if (!sol) continue;
     const e = smEval(G, p, bx, by, sol.s * dx, sol.s * dy);
+    if (caller && e.kind === 'pass' && e.who === caller) e.v += e.close < 38 ? 360 : 40;     // me la pidieron: al pie
     /* acomodarse detrás de la pelota para ese toque cuesta tiempo */
     const ax = (p.x - bx) * sol.ux + (p.y - by) * sol.uy, lat = Math.abs((p.x - bx) * sol.uy - (p.y - by) * sol.ux);
     const setup = ax > -R * 0.5 ? 25 + lat * 0.1 : lat * 0.08;
@@ -1079,7 +1119,9 @@ function smTick(G, p) {
     let contested = false;
     for (const q of G.players) if (q.team !== p.team && Math.hypot(q.x - b.x, q.y - b.y) < q.r + b.r + 8) contested = true;
     A.stuck = contested || Math.hypot(b.vx, b.vy) < 0.4 ? (A.stuck || 0) + 1 : 0;   // trabada o quieta contra la pared
+    const caller = callerFor(G, p);
     if (e.kind === 'own') kick = false;
+    else if (caller && e.kind === 'pass' && e.who === caller && e.close < 38 && e.ps > 0.3) kick = true;   // pase al pie del que la pidió
     else if (e.kind === 'shot' && e.pg > 0.3) kick = true;
     else if (e.v > hold + 6 && e.v > plan - 25) kick = true;
     else if (A.stuck > 25 && (e.v > hold - 70 || A.stuck > 45)) kick = true;
@@ -1100,7 +1142,7 @@ function smTick(G, p) {
   p.in.dx = clamp(ix, -1, 1); p.in.dy = clamp(iy, -1, 1); p.in.kick = kick;
 }
 
-if (typeof module !== 'undefined') module.exports = { predictCross, totals, C, PITCHES, PITCH_LIMITS, DIFF, makeGeo, createGame, step };
+if (typeof module !== 'undefined') module.exports = { predictCross, totals, callForBall, C, PITCHES, PITCH_LIMITS, DIFF, makeGeo, createGame, step };
 
 /* ===== Mundial: sorteo, fase de grupos, llaves y simulación (sin DOM) ===== */
 const WC = (() => {
@@ -2088,7 +2130,8 @@ function setState(s) {
   state = s;
   $('pauseBtn').hidden = s !== 'playing';
   $('touch').hidden = !((s === 'playing') && isTouch);
-  $('kickBtn').style.display = mode === 'pens' ? 'none' : '';     // en los penales se patea solo al tocar la pelota
+  $('kickBtn').style.display = mode === 'pens' ? 'none' : '';
+  $('callBtn').style.display = mode !== 'pens' && game && game.nTeam[game.humanTeam] > 1 ? '' : 'none';     // en los penales se patea solo al tocar la pelota
   if (s === 'playing') showScreen(null);
   else if (s === 'paused') showScreen('pause');
   else if (s === 'ended') showScreen('end');
@@ -2112,6 +2155,7 @@ window.addEventListener('keydown', e => {
   if (state !== 'playing') return;
   if (MOVE[e.code]) { keys[MOVE[e.code]] = true; e.preventDefault(); }
   else if (KICK[e.code]) { keys.k = true; e.preventDefault(); }
+  else if (e.code === 'KeyE' || e.code === 'KeyQ') { askBall(); e.preventDefault(); }
 });
 window.addEventListener('keyup', e => {
   if (MOVE[e.code]) keys[MOVE[e.code]] = false;
@@ -2121,7 +2165,13 @@ window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; }
 document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'playing') pauseGame(); });
 
 let stickId = null, kickId = null, sx0 = 0, sy0 = 0;
-const base = $('stickBase'), knob = $('stickKnob'), kickBtn = $('kickBtn');
+const base = $('stickBase'), knob = $('stickKnob'), kickBtn = $('kickBtn'), callBtn = $('callBtn');
+/* pedir la pelota a los compañeros de la máquina (2v2 y 3v3) */
+function askBall() {
+  if (state !== 'playing' || !game || mode === 'pens') return;
+  const me = game.players.find(q => q.human);
+  if (callForBall(game, me)) { tone(660, 0.08, 'square', 0.05); tone(880, 0.1, 'square', 0.05, 0, 0.09); }
+}
 function releaseTouch() {
   stickId = kickId = null; tin.dx = tin.dy = 0; tin.kick = false; tin.active = false;
   base.classList.remove('on'); kickBtn.classList.remove('on');
@@ -2131,6 +2181,7 @@ window.addEventListener('touchstart', e => {
   let used = false;
   for (const t of e.changedTouches) {
     if (t.target.closest && t.target.closest('#pauseBtn')) continue;
+    if (t.target === callBtn) { askBall(); callBtn.classList.add('on'); setTimeout(() => callBtn.classList.remove('on'), 200); used = true; continue; }
     if (t.target === kickBtn) { kickId = t.identifier; tin.kick = true; kickBtn.classList.add('on'); used = true; }
     else if (stickId === null && t.clientX < VW * 0.6) {
       stickId = t.identifier; sx0 = t.clientX; sy0 = t.clientY; tin.active = true; used = true;
@@ -2448,6 +2499,17 @@ function drawGame(G, alpha, extra) {
   }
   g2.restore();
 
+  /* globito cuando pedís la pelota */
+  if (G.call && G.tick <= G.call.until) {
+    const l = labels.find(x => x.p === G.call.p);
+    if (l) {
+      const bx = l.x, by = l.y - G.call.p.r * 2 * sc - 22;
+      g2.font = '700 13px ' + FONT; const tw = g2.measureText('¡Pasala!').width + 14;
+      g2.fillStyle = '#fff'; rr(bx - tw / 2, by - 12, tw, 22, 8); g2.fill();
+      g2.beginPath(); g2.moveTo(bx - 5, by + 10); g2.lineTo(bx + 5, by + 10); g2.lineTo(bx, by + 16); g2.closePath(); g2.fill();
+      g2.fillStyle = '#101412'; g2.textAlign = 'center'; g2.textBaseline = 'middle'; g2.fillText('¡Pasala!', bx, by);
+    }
+  }
   g2.font = '600 12px ' + BODY; g2.textAlign = 'center'; g2.textBaseline = 'alphabetic';
   for (const l of labels) {
     g2.lineWidth = 3; g2.strokeStyle = 'rgba(8,12,10,.7)'; g2.strokeText(l.p.name, l.x, l.y + 14);
@@ -2460,25 +2522,30 @@ function drawGame(G, alpha, extra) {
     g2.fillText('Girá el dispositivo para jugar en horizontal', VW / 2, VH - 24);
   } else if (!isTouch && G.phase === 'kickoff' && G.tick < 300) {
     g2.fillStyle = 'rgba(233,240,234,.7)'; g2.font = '500 14px ' + BODY; g2.textAlign = 'center';
-    g2.fillText('Mover: WASD o flechas   ·   Patear: X o Espacio   ·   Pausa: P', VW / 2, VH - 18);
+    g2.fillText('Mover: WASD o flechas   ·   Patear: X o Espacio   ·   ' + (G.nTeam[G.humanTeam] > 1 ? 'Pedir la pelota: E   ·   ' : '') + 'Pausa: P', VW / 2, VH - 18);
   }
 }
 
+/* color de un equipo legible sobre el fondo oscuro del marcador */
+function hudCol(G, t) {
+  const c = kitOf(G, t), n = parseInt(c.slice(1), 16), lum = ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000;
+  return lum < 70 ? '#c9d1cc' : c;
+}
 function drawHud(G, extra) {
   const codes = G.cfg.teamCodes;
   const w = 216, hh = 46, x0 = VW / 2 - w / 2, y0 = 10;
   g2.fillStyle = COL.hud; rr(x0, y0, w, hh, 10); g2.fill();
   g2.textBaseline = 'middle'; g2.textAlign = 'center';
   g2.font = '700 28px ' + FONT;
-  g2.fillStyle = kitOf(G, 0); g2.fillText(String(G.score[0]), x0 + 28, y0 + hh / 2 + 1);
-  g2.fillStyle = kitOf(G, 1); g2.fillText(String(G.score[1]), x0 + w - 28, y0 + hh / 2 + 1);
+  g2.fillStyle = hudCol(G, 0); g2.fillText(String(G.score[0]), x0 + 28, y0 + hh / 2 + 1);
+  g2.fillStyle = hudCol(G, 1); g2.fillText(String(G.score[1]), x0 + w - 28, y0 + hh / 2 + 1);
   g2.font = '600 20px ' + FONT;
   g2.fillStyle = G.overtime ? '#ffd27a' : '#e9f0ea';
   g2.fillText(G.overtime ? fmtTime(Math.max(0, C.goldenTicks - G.otTicks)) : fmtTime(G.playTicks), VW / 2, y0 + hh / 2 + 1);
   if (codes) {
     g2.font = '700 14px ' + FONT;
-    g2.textAlign = 'right'; g2.fillStyle = kitOf(G, 0); g2.fillText(codes[0], x0 - 10, y0 + hh / 2 + 1);
-    g2.textAlign = 'left'; g2.fillStyle = kitOf(G, 1); g2.fillText(codes[1], x0 + w + 10, y0 + hh / 2 + 1);
+    g2.textAlign = 'right'; g2.fillStyle = hudCol(G, 0); g2.fillText(codes[0], x0 - 10, y0 + hh / 2 + 1);
+    g2.textAlign = 'left'; g2.fillStyle = hudCol(G, 1); g2.fillText(codes[1], x0 + w + 10, y0 + hh / 2 + 1);
   }
   g2.textAlign = 'center'; g2.textBaseline = 'alphabetic'; g2.font = '500 12px ' + BODY; g2.fillStyle = 'rgba(233,240,234,.62)';
   const sub = G.cfg.subtitle ? G.cfg.subtitle : DIFF[G.cfg.diff] ? DIFF[G.cfg.diff].label + ' · ' + G.cfg.size + 'v' + G.cfg.size : '';
@@ -2828,7 +2895,7 @@ function initWc() {
 }
 
 /* ===== Pantallas del modo Copa Libertadores ===== */
-const LIBCFG = Object.assign({ diff: 'normal', minutes: '2', size: '1', team: 'BOC' }, store.get('libcfg', {}));
+const LIBCFG = Object.assign({ diff: 'normal', minutes: '2', size: '1', field: 'auto', team: 'BOC' }, store.get('libcfg', {}));
 if (!LIB.BY[LIBCFG.team]) LIBCFG.team = 'BOC';
 let lib = null;
 let libTab = 'match';
@@ -2850,8 +2917,22 @@ const LIB_GROUPS = [
       prog: 'Empieza fácil en la fase de grupos y llega a Experto en semifinales y la final.'
     } },
   { key: 'minutes', label: 'Duración de cada partido', opts: [['1', '1 min'], ['2', '2 min'], ['3', '3 min'], ['5', '5 min']] },
-  { key: 'size', label: 'Jugadores por equipo', opts: [['1', '1 vs 1'], ['2', '2 vs 2'], ['3', '3 vs 3']] }
+  { key: 'size', label: 'Jugadores por equipo', opts: [['1', '1 vs 1'], ['2', '2 vs 2'], ['3', '3 vs 3']] },
+  { key: 'field', label: 'Tamaño de cancha', opts: [['auto', 'Automático'], ['stadium', 'Del estadio'], ['big', 'Grande'], ['huge', 'Enorme']],
+    hints: {
+      auto: 'Según los jugadores: la medida del estadio en 1v1, un 20% más grande en 2v2 y un 40% más en 3v3.',
+      stadium: 'La medida de cada estadio (la Bombonera es más chica, el Maracanã más grande).',
+      big: 'Cada estadio un 30% más grande.', huge: 'Cada estadio un 60% más grande. Ideal para 3v3.'
+    } }
 ];
+/* medida de la cancha para un partido: la del estadio, agrandada según la opción */
+function libPitch(base, size) {
+  const k = LIBCFG.field === 'stadium' ? 1 : LIBCFG.field === 'big' ? 1.3 : LIBCFG.field === 'huge' ? 1.6 : [1, 1, 1.2, 1.4][size] || 1;
+  const W = clampN(Math.round(base.W * k), PITCH_LIMITS.W[0], PITCH_LIMITS.W[1]);
+  const H = clampN(Math.round(base.H * k), PITCH_LIMITS.H[0], PITCH_LIMITS.H[1]);
+  const gh = clampN(Math.round(base.gh * Math.sqrt(k)), PITCH_LIMITS.gh[0], Math.min(PITCH_LIMITS.gh[1], H - 25));
+  return { W, H, gh };
+}
 
 function libChip(c, big) {
   const k = LIB.BY[c].k;
@@ -2878,7 +2959,7 @@ function buildLibSetup() {
   for (const def of LIB_GROUPS) grid.append(segGroup('lb', def, LIBCFG, saveLibCfg));
   c.append(grid);
   c.append(h('button', { class: 'btn go', type: 'button', text: lib ? 'Nueva copa: elegir equipo' : 'Elegir mi equipo', onclick: () => { buildLibTeam(); showScreen('libteam'); } }));
-  c.append(h('p', { class: 'fine', text: 'Cada equipo juega de local en su estadio. Los jugadores de cada plantel tienen nombres de futbolistas reales del club; la valoración de cada equipo es propia.' }));
+  c.append(h('p', { class: 'fine', text: 'El tamaño de cancha se puede cambiar en cualquier momento: vale desde el próximo partido. Cada equipo juega de local en su estadio. Los jugadores de cada plantel tienen nombres de futbolistas reales del club; la valoración de cada equipo es propia.' }));
 }
 
 /* ---------- Elegir equipo ---------- */
@@ -2940,7 +3021,7 @@ function libMatchTab(body) {
       h('p', { class: 'eyebrow', text: p.label + ' · ' + p.stadium.n }),
       h('div', { class: 'vs' }, side(p.h, p.final ? 'Neutral' : 'Local'), h('div', { class: 'vsx', text: 'vs' }), side(p.a, p.final ? 'Neutral' : 'Visitante')),
       ida,
-      h('p', { class: 'meta', text: 'Rival: ' + diffLabel(d) + ' · ' + lib.size + ' vs ' + lib.size + ' · ' + lib.minutes + ' min' + rule }),
+      h('p', { class: 'meta', text: 'Rival: ' + diffLabel(d) + ' · ' + lib.size + ' vs ' + lib.size + ' · ' + lib.minutes + ' min · cancha ' + ({ auto: 'automática', stadium: 'del estadio', big: 'grande', huge: 'enorme' }[LIBCFG.field] || 'automática') + rule }),
       h('p', { class: 'meta', text: 'Tu equipo: Vos' + (lib.size > 1 ? ', ' + LIB.BY[me].p.slice(0, lib.size - 1).join(', ') : '') + ' · Rival: ' + LIB.BY[opp].p.slice(0, lib.size).join(', ') }),
       h('div', { class: 'row' },
         h('button', { class: 'btn go', type: 'button', text: 'Jugar partido', onclick: libPlay }),
@@ -3063,7 +3144,7 @@ function libPlay() {
   for (let i = 0; i < size; i++) roster.push({ team: 1, human: false, name: LIB.BY[opp].p[i] });
   launchGame({
     size, diff: LIB.diffFor(lib), humanTeam: 0, timeLimit: lib.minutes, scoreLimit: 0, allowDraw: !p.decisive, agg,
-    pitch: p.stadium.pitch, stadium: p.stadium, roster,
+    pitch: libPitch(p.stadium.pitch, size), stadium: p.stadium, roster,
     teamNames: [libName(me), libName(opp)], teamCodes: [me, opp], kits,
     subtitle: p.label + ' · ' + p.stadium.n
   }, 'lib', () => libMatchOver(p, opp), () => [
@@ -3458,8 +3539,9 @@ function buildHome() {
     h('summary', { text: 'Controles' }),
     h('div', null, h('b', { text: 'Mover' }), h('kbd', { text: 'W' }), h('kbd', { text: 'A' }), h('kbd', { text: 'S' }), h('kbd', { text: 'D' }), ' o flechas'),
     h('div', null, h('b', { text: 'Patear' }), h('kbd', { text: 'X' }), ' o ', h('kbd', { text: 'Espacio' }), '. Mantenelo apretado y patea al tocar la pelota.'),
+    h('div', null, h('b', { text: 'Pedir' }), h('kbd', { text: 'E' }), ' en 2v2 y 3v3: tus compañeros te pasan la pelota.'),
     h('div', null, h('b', { text: 'Pausa' }), h('kbd', { text: 'P' }), ' o ', h('kbd', { text: 'Esc' })),
-    h('div', null, h('b', { text: 'Celular' }), 'Joystick a la izquierda y botón a la derecha. Jugá en horizontal.')));
+    h('div', null, h('b', { text: 'Celular' }), 'Joystick a la izquierda; Patear y Pedir a la derecha. Jugá en horizontal.')));
   c.append(h('button', { class: 'btn sm soundbtn', type: 'button', text: 'Sonido: ' + (SND.on ? 'sí' : 'no'), onclick: e => { SND.on = !SND.on; store.set('sound', SND.on); e.target.textContent = 'Sonido: ' + (SND.on ? 'sí' : 'no'); } }));
 }
 

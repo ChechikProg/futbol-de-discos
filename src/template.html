@@ -235,6 +235,13 @@ kbd { font: 600 12px var(--f-display); color: var(--fg); background: var(--panel
   background: rgba(255, 255, 255, .12); color: #fff; font: 700 15px var(--f-display); letter-spacing: .06em; text-transform: uppercase;
 }
 #kickBtn.on { background: rgba(255, 255, 255, .5); border-color: #fff; color: #111; }
+#callBtn {
+  position: fixed; pointer-events: auto; touch-action: none;
+  right: calc(max(16px, env(safe-area-inset-right, 0px)) + 20px); bottom: calc(max(16px, env(safe-area-inset-bottom, 0px)) + 124px);
+  width: 72px; height: 72px; border-radius: 50%; border: 3px solid rgba(199, 230, 189, .6);
+  background: rgba(199, 230, 189, .12); color: #e9f0ea; font: 700 13px var(--f-display); letter-spacing: .06em; text-transform: uppercase;
+}
+#callBtn.on { background: rgba(199, 230, 189, .55); color: #111; }
 
 @media (min-width: 700px) {
   .groups { grid-template-columns: 1fr 1fr; }
@@ -262,6 +269,7 @@ kbd { font: 600 12px var(--f-display); color: var(--fg); background: var(--panel
 <div id="touch" hidden>
   <div id="stickBase"><div id="stickKnob"></div></div>
   <button id="kickBtn" type="button">Patear</button>
+  <button id="callBtn" type="button">Pedir</button>
 </div>
 <script>
 /*__JS__*/

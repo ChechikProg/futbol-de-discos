@@ -115,8 +115,21 @@ function resetKickoff(G, kickTeam) {
 
 function ev(G, t) { if (G.events.length < 64) G.events.push(t); }
 
+/* pedir la pelota: los compañeros de la máquina buscan pasársela al que la pidió (dura 2 segundos) */
+function callForBall(G, p) {
+  if (!p || G.nTeam[p.team] < 2) return false;
+  G.call = { p, until: G.tick + 120 };
+  return true;
+}
+function callerFor(G, p) {
+  const c = G.call;
+  if (!c || G.tick > c.until || c.p === p || c.p.team !== p.team) return null;
+  return c.p;
+}
+
 function touchBall(G, p) {
   G.lastTouch = p;
+  if (G.call && (G.call.p === p || G.call.p.team !== p.team)) G.call = null;
   if (G.phase === 'kickoff') G.phase = 'play';
 }
 
@@ -337,6 +350,15 @@ function aiUpdate(G, p) {
     if (A.precise) { dx -= p.vx * 0.5; dy -= p.vy * 0.5; }
   }
   p.in.dx = dx; p.in.dy = dy; p.in.kick = A.kick;
+  /* pase pedido: se decide en cada tick, para patear justo cuando la pelota sale hacia el compañero */
+  const caller = A.chaser ? callerFor(G, p) : null;
+  if (caller) {
+    const b = G.ball, bd = Math.hypot(b.x - p.x, b.y - p.y) || 1;
+    const ux = (b.x - p.x) / bd, uy = (b.y - p.y) / bd;
+    let tx = caller.x + caller.vx * 12 - b.x, ty = caller.y + caller.vy * 12 - b.y; const tl = Math.hypot(tx, ty) || 1;
+    const ang = Math.acos(clamp((ux * tx + uy * ty) / tl, -1, 1));
+    p.in.kick = bd - p.r - b.r < C.kickRange + 1 && ang < 0.06 + D.aimErr * 0.05;
+  }
 }
 
 function aiDecide(G, p) {
@@ -411,7 +433,10 @@ function aiDecide(G, p) {
   }
   let aimY = gk && gd < 140 * kx ? (gk.y > 0 ? -gh * 0.66 : gh * 0.66) : (ball.y > 0 ? -gh * 0.55 : gh * 0.55);
   aimY += rnd(-1, 1) * D.aimErr * gh * 2.2;
-  let sx = oppX - bp.x, sy = aimY - bp.y;
+  const caller = callerFor(G, p);
+  let aimX = oppX;
+  if (caller) { aimX = caller.x + caller.vx * 12; aimY = caller.y + caller.vy * 12; }   // me la pidieron: apuntar al compañero
+  let sx = aimX - bp.x, sy = aimY - bp.y;
   const sl = Math.hypot(sx, sy) || 1; sx /= sl; sy /= sl;
   const nx = -sy, ny = sx;
 
@@ -420,7 +445,7 @@ function aiDecide(G, p) {
   const R = ball.r + p.r;
   let tx, ty;
   if (a < 0) {
-    if (Math.abs(l) < 18 + (-a) * 0.12 || dist < R + 25) { tx = bp.x; ty = bp.y; }
+    if (caller ? Math.abs(l) < 5 : (Math.abs(l) < 18 + (-a) * 0.12 || dist < R + 25)) { tx = bp.x; ty = bp.y; }   // para el pase hay que estar bien alineado
     else { const back = 30 + clamp(-a * 0.15, 0, 40); tx = bp.x - sx * back; ty = bp.y - sy * back; }
   } else {
     let side = l >= 0 ? 1 : -1;
@@ -440,12 +465,12 @@ function aiDecide(G, p) {
     const ang = Math.acos(clamp(ux * sx + uy * sy, -1, 1));
     const toGoal = Math.abs(oppX - ball.x);
     const allowed = toGoal < 380 * kx || ball.x * dir < -20;
-    const safe = !(ux * dir < -0.4 && ball.x * dir < -W * 0.54 && Math.abs(ball.y) < H * 0.65);
+    const safe = !!caller || !(ux * dir < -0.4 && ball.x * dir < -W * 0.54 && Math.abs(ball.y) < H * 0.65);
     let pressed = false;
     for (const q of G.players) {
       if (q.team !== p.team && Math.hypot(q.x - p.x, q.y - p.y) < 36) { pressed = true; break; }
     }
-    const good = (allowed && ang < D.kickTol) || (pressed && ang < 1.2);
+    const good = caller ? ang < 0.06 + D.aimErr * 0.05 : ((allowed && ang < D.kickTol) || (pressed && ang < 1.2));
     A.kick = (safe && good) || Math.random() < D.sloppy;
   }
 }
@@ -573,7 +598,12 @@ function smEval(G, p, bx, by, vx, vy) {
     }
     if (Math.min(tUs, tThem) <= k || k >= n - 1) {
       const ps = smSig((tThem - tUs) / 3);
-      return { v: ps * smPos(G, team, x, y) - (1 - ps) * smDanger(G, team, x, y), kind: who === p ? 'space' : 'pass', ps, x, y, who };
+      let close = 1e9;
+      if (who && who !== p && G.call && G.call.p === who) {
+        /* qué tan cerca le pasa la pelota al que la pidió (pase al pie) */
+        for (let j = 1; j <= n; j += 2) close = Math.min(close, Math.hypot(SM.SPx[j] - who.x - who.vx * j * 0.5, SM.SPy[j] - who.y - who.vy * j * 0.5));
+      }
+      return { v: ps * smPos(G, team, x, y) - (1 - ps) * smDanger(G, team, x, y), kind: who === p ? 'space' : 'pass', ps, x, y, who, close };
     }
   }
   return { v: 0, kind: 'none' };
@@ -720,7 +750,8 @@ function smDecide(G, p) {
   /* tengo la pelota (o llego primero): evaluar acciones desde donde la voy a tomar */
   const t0 = clamp(Math.round(tMe), 0, nb);
   const bx = SM.BPx[t0], by = SM.BPy[t0], bvx = SM.BPvx[t0], bvy = SM.BPvy[t0];
-  const Hc = H - b.r, targets = [];
+  const Hc = H - b.r, targets = [], caller = callerFor(G, p);
+  if (caller) for (const lead of [0, 8, 16]) targets.push([caller.x + caller.vx * lead, caller.y + caller.vy * lead]);
   for (const f of [-0.82, -0.55, -0.28, 0, 0.28, 0.55, 0.82]) targets.push([oppX + dir * 12, f * gh]);
   for (const f of [-0.5, 0.5]) { targets.push([oppX + dir * 12, 2 * Hc - f * gh]); targets.push([oppX + dir * 12, -2 * Hc - f * gh]); }
   for (const q of mates) {
@@ -737,6 +768,7 @@ function smDecide(G, p) {
     const sol = smSolve(bvx, bvy, dx, dy, C.kickStr * (p.diff.kick || 1));
     if (!sol) continue;
     const e = smEval(G, p, bx, by, sol.s * dx, sol.s * dy);
+    if (caller && e.kind === 'pass' && e.who === caller) e.v += e.close < 38 ? 360 : 40;     // me la pidieron: al pie
     /* acomodarse detrás de la pelota para ese toque cuesta tiempo */
     const ax = (p.x - bx) * sol.ux + (p.y - by) * sol.uy, lat = Math.abs((p.x - bx) * sol.uy - (p.y - by) * sol.ux);
     const setup = ax > -R * 0.5 ? 25 + lat * 0.1 : lat * 0.08;
@@ -807,7 +839,9 @@ function smTick(G, p) {
     let contested = false;
     for (const q of G.players) if (q.team !== p.team && Math.hypot(q.x - b.x, q.y - b.y) < q.r + b.r + 8) contested = true;
     A.stuck = contested || Math.hypot(b.vx, b.vy) < 0.4 ? (A.stuck || 0) + 1 : 0;   // trabada o quieta contra la pared
+    const caller = callerFor(G, p);
     if (e.kind === 'own') kick = false;
+    else if (caller && e.kind === 'pass' && e.who === caller && e.close < 38 && e.ps > 0.3) kick = true;   // pase al pie del que la pidió
     else if (e.kind === 'shot' && e.pg > 0.3) kick = true;
     else if (e.v > hold + 6 && e.v > plan - 25) kick = true;
     else if (A.stuck > 25 && (e.v > hold - 70 || A.stuck > 45)) kick = true;
@@ -828,4 +862,4 @@ function smTick(G, p) {
   p.in.dx = clamp(ix, -1, 1); p.in.dy = clamp(iy, -1, 1); p.in.kick = kick;
 }
 
-if (typeof module !== 'undefined') module.exports = { predictCross, totals, C, PITCHES, PITCH_LIMITS, DIFF, makeGeo, createGame, step };
+if (typeof module !== 'undefined') module.exports = { predictCross, totals, callForBall, C, PITCHES, PITCH_LIMITS, DIFF, makeGeo, createGame, step };

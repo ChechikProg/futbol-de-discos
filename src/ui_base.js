@@ -179,7 +179,8 @@ function setState(s) {
   state = s;
   $('pauseBtn').hidden = s !== 'playing';
   $('touch').hidden = !((s === 'playing') && isTouch);
-  $('kickBtn').style.display = mode === 'pens' ? 'none' : '';     // en los penales se patea solo al tocar la pelota
+  $('kickBtn').style.display = mode === 'pens' ? 'none' : '';
+  $('callBtn').style.display = mode !== 'pens' && game && game.nTeam[game.humanTeam] > 1 ? '' : 'none';     // en los penales se patea solo al tocar la pelota
   if (s === 'playing') showScreen(null);
   else if (s === 'paused') showScreen('pause');
   else if (s === 'ended') showScreen('end');
@@ -203,6 +204,7 @@ window.addEventListener('keydown', e => {
   if (state !== 'playing') return;
   if (MOVE[e.code]) { keys[MOVE[e.code]] = true; e.preventDefault(); }
   else if (KICK[e.code]) { keys.k = true; e.preventDefault(); }
+  else if (e.code === 'KeyE' || e.code === 'KeyQ') { askBall(); e.preventDefault(); }
 });
 window.addEventListener('keyup', e => {
   if (MOVE[e.code]) keys[MOVE[e.code]] = false;
@@ -212,7 +214,13 @@ window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; }
 document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'playing') pauseGame(); });
 
 let stickId = null, kickId = null, sx0 = 0, sy0 = 0;
-const base = $('stickBase'), knob = $('stickKnob'), kickBtn = $('kickBtn');
+const base = $('stickBase'), knob = $('stickKnob'), kickBtn = $('kickBtn'), callBtn = $('callBtn');
+/* pedir la pelota a los compañeros de la máquina (2v2 y 3v3) */
+function askBall() {
+  if (state !== 'playing' || !game || mode === 'pens') return;
+  const me = game.players.find(q => q.human);
+  if (callForBall(game, me)) { tone(660, 0.08, 'square', 0.05); tone(880, 0.1, 'square', 0.05, 0, 0.09); }
+}
 function releaseTouch() {
   stickId = kickId = null; tin.dx = tin.dy = 0; tin.kick = false; tin.active = false;
   base.classList.remove('on'); kickBtn.classList.remove('on');
@@ -222,6 +230,7 @@ window.addEventListener('touchstart', e => {
   let used = false;
   for (const t of e.changedTouches) {
     if (t.target.closest && t.target.closest('#pauseBtn')) continue;
+    if (t.target === callBtn) { askBall(); callBtn.classList.add('on'); setTimeout(() => callBtn.classList.remove('on'), 200); used = true; continue; }
     if (t.target === kickBtn) { kickId = t.identifier; tin.kick = true; kickBtn.classList.add('on'); used = true; }
     else if (stickId === null && t.clientX < VW * 0.6) {
       stickId = t.identifier; sx0 = t.clientX; sy0 = t.clientY; tin.active = true; used = true;
@@ -539,6 +548,17 @@ function drawGame(G, alpha, extra) {
   }
   g2.restore();
 
+  /* globito cuando pedís la pelota */
+  if (G.call && G.tick <= G.call.until) {
+    const l = labels.find(x => x.p === G.call.p);
+    if (l) {
+      const bx = l.x, by = l.y - G.call.p.r * 2 * sc - 22;
+      g2.font = '700 13px ' + FONT; const tw = g2.measureText('¡Pasala!').width + 14;
+      g2.fillStyle = '#fff'; rr(bx - tw / 2, by - 12, tw, 22, 8); g2.fill();
+      g2.beginPath(); g2.moveTo(bx - 5, by + 10); g2.lineTo(bx + 5, by + 10); g2.lineTo(bx, by + 16); g2.closePath(); g2.fill();
+      g2.fillStyle = '#101412'; g2.textAlign = 'center'; g2.textBaseline = 'middle'; g2.fillText('¡Pasala!', bx, by);
+    }
+  }
   g2.font = '600 12px ' + BODY; g2.textAlign = 'center'; g2.textBaseline = 'alphabetic';
   for (const l of labels) {
     g2.lineWidth = 3; g2.strokeStyle = 'rgba(8,12,10,.7)'; g2.strokeText(l.p.name, l.x, l.y + 14);
@@ -551,25 +571,30 @@ function drawGame(G, alpha, extra) {
     g2.fillText('Girá el dispositivo para jugar en horizontal', VW / 2, VH - 24);
   } else if (!isTouch && G.phase === 'kickoff' && G.tick < 300) {
     g2.fillStyle = 'rgba(233,240,234,.7)'; g2.font = '500 14px ' + BODY; g2.textAlign = 'center';
-    g2.fillText('Mover: WASD o flechas   ·   Patear: X o Espacio   ·   Pausa: P', VW / 2, VH - 18);
+    g2.fillText('Mover: WASD o flechas   ·   Patear: X o Espacio   ·   ' + (G.nTeam[G.humanTeam] > 1 ? 'Pedir la pelota: E   ·   ' : '') + 'Pausa: P', VW / 2, VH - 18);
   }
 }
 
+/* color de un equipo legible sobre el fondo oscuro del marcador */
+function hudCol(G, t) {
+  const c = kitOf(G, t), n = parseInt(c.slice(1), 16), lum = ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000;
+  return lum < 70 ? '#c9d1cc' : c;
+}
 function drawHud(G, extra) {
   const codes = G.cfg.teamCodes;
   const w = 216, hh = 46, x0 = VW / 2 - w / 2, y0 = 10;
   g2.fillStyle = COL.hud; rr(x0, y0, w, hh, 10); g2.fill();
   g2.textBaseline = 'middle'; g2.textAlign = 'center';
   g2.font = '700 28px ' + FONT;
-  g2.fillStyle = kitOf(G, 0); g2.fillText(String(G.score[0]), x0 + 28, y0 + hh / 2 + 1);
-  g2.fillStyle = kitOf(G, 1); g2.fillText(String(G.score[1]), x0 + w - 28, y0 + hh / 2 + 1);
+  g2.fillStyle = hudCol(G, 0); g2.fillText(String(G.score[0]), x0 + 28, y0 + hh / 2 + 1);
+  g2.fillStyle = hudCol(G, 1); g2.fillText(String(G.score[1]), x0 + w - 28, y0 + hh / 2 + 1);
   g2.font = '600 20px ' + FONT;
   g2.fillStyle = G.overtime ? '#ffd27a' : '#e9f0ea';
   g2.fillText(G.overtime ? fmtTime(Math.max(0, C.goldenTicks - G.otTicks)) : fmtTime(G.playTicks), VW / 2, y0 + hh / 2 + 1);
   if (codes) {
     g2.font = '700 14px ' + FONT;
-    g2.textAlign = 'right'; g2.fillStyle = kitOf(G, 0); g2.fillText(codes[0], x0 - 10, y0 + hh / 2 + 1);
-    g2.textAlign = 'left'; g2.fillStyle = kitOf(G, 1); g2.fillText(codes[1], x0 + w + 10, y0 + hh / 2 + 1);
+    g2.textAlign = 'right'; g2.fillStyle = hudCol(G, 0); g2.fillText(codes[0], x0 - 10, y0 + hh / 2 + 1);
+    g2.textAlign = 'left'; g2.fillStyle = hudCol(G, 1); g2.fillText(codes[1], x0 + w + 10, y0 + hh / 2 + 1);
   }
   g2.textAlign = 'center'; g2.textBaseline = 'alphabetic'; g2.font = '500 12px ' + BODY; g2.fillStyle = 'rgba(233,240,234,.62)';
   const sub = G.cfg.subtitle ? G.cfg.subtitle : DIFF[G.cfg.diff] ? DIFF[G.cfg.diff].label + ' · ' + G.cfg.size + 'v' + G.cfg.size : '';
