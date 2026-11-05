@@ -522,7 +522,8 @@ function drawGame(G, alpha, extra) {
   const geo = G.geo, top = 74, bot = G.cfg.stadium ? 30 : 14, side = 10;
   const aw = VW - side * 2, ah = VH - top - bot;
   const SG = stadiumGeo(G), ex = SG ? SG.ox : geo.boxW, ey = SG ? SG.oy : geo.boxH;
-  const sc = Math.min(aw / (2 * (ex + 6)), ah / (2 * (ey + 6)));
+  /* como en HaxBall: la cancha no se agranda más que ~1 px por unidad (si no, la pelota parece mucho más rápida) */
+  const sc = Math.min(aw / (2 * (ex + 6)), ah / (2 * (ey + 6)), Math.max(1, VW / 1280));
   const ox = VW / 2, oy = top + ah / 2;
   const ix = d => d.px + (d.x - d.px) * alpha, iy = d => d.py + (d.y - d.py) * alpha;
 

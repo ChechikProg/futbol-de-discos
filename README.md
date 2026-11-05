@@ -48,7 +48,7 @@ test/              pruebas (bots, Mundial, penales, navegador)
 
 ## Física y canchas de futsal (Bazinga)
 
-Los partidos usan la física de los mapas de futsal de Bazinga: pelota chica y liviana (radio 6,25, más rápida al patearla), jugadores que no rebotan entre sí, aceleración 0,11 y 0,083 con patear apretado. La cancha cambia con la cantidad de jugadores (x1, x2, x3; las medidas de x1 a x3 están escaladas a partir del mapa x4, que es el que está publicado). Los penales mantienen la física clásica. Fuentes: [física de Bazinga](https://gist.github.com/EduMejorado/375a01d16e89fa65807ee73ef8ae1417), [Futsal x4 by Bazinga](https://haxmaps.com/map/13599), [Futsal x3](https://haxmaps.com/map/8379).
+Los partidos usan la física de los mapas de futsal de Bazinga: pelota chica y liviana (radio 6,25, más rápida al patearla), jugadores que no rebotan entre sí, aceleración 0,11 y 0,083 con patear apretado. La cancha es la del mapa real según la cantidad de jugadores: 1v1 y 2v2 usan "Futsal x1 and x2" (368×171, arco de 124, círculo de 65) y 3v3 usa "Futsal x3" (550×240, arco de 160, círculo de 80). Se dibuja a ~1 px por unidad, como en HaxBall, para que la velocidad se vea igual. Los penales mantienen la física clásica. Fuentes: [física de Bazinga](https://gist.github.com/EduMejorado/375a01d16e89fa65807ee73ef8ae1417), [Futsal x4 by Bazinga](https://haxmaps.com/map/13599), [Futsal x1 and x2](https://haxmaps.com/map/9824), [Futsal x3](https://haxmaps.com/map/8379).
 
 ## El nivel Imposible
 
@@ -59,6 +59,8 @@ Tiene la misma velocidad y la misma patada que el jugador: la diferencia es solo
 - Tiene en cuenta que una persona tarda unos 11 ticks (≈0,2 s) en reaccionar a una patada nueva, así que remata y pasa donde no llegás a reaccionar.
 - Defiende en la bisectriz del ángulo entre la pelota y los palos, a la distancia en la que su cuerpo tapa todo el arco; si lo pasan, vuelve a la boca del arco; cerca de su arco no se la juega y nunca la manda hacia su propio arco.
 - Gambetea amagando: si el rival se tira para un lado, sale para el otro.
+- Presiona: cuando el rival tiene la pelota se le pega del lado de su arco y la disputa; remata apenas tiene un buen ángulo.
+- En el saque del rival se para en la línea pelota-arco; si viene un tiro, llega adelante de la pelota (nunca la empuja de atrás para adentro) y pegada a su arco despeja en vez de conducir.
 
 Ideas tomadas de guías de arqueros de HaxBall (ocupar la posición que cubre los ángulos, achicar sin regalar la espalda, hacer que el rival se comprometa y salir para el otro lado).
 

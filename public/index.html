@@ -294,7 +294,7 @@ const PHYS = {
 };
 
 const PITCHES = {
-  futsal:  { label: 'Futsal Bazinga', W: 420, H: 195, gh: 70, kr: 60, bySize: { 1: { W: 420, H: 195, gh: 70, kr: 60 }, 2: { W: 520, H: 238, gh: 78, kr: 66 }, 3: { W: 610, H: 280, gh: 85, kr: 72 }, 4: { W: 700, H: 320, gh: 90, kr: 80 } } },
+  futsal:  { label: 'Futsal Bazinga', W: 368, H: 171, gh: 62, kr: 65, bySize: { 1: { W: 368, H: 171, gh: 62, kr: 65 }, 2: { W: 368, H: 171, gh: 62, kr: 65 }, 3: { W: 550, H: 240, gh: 80, kr: 80 }, 4: { W: 700, H: 320, gh: 90, kr: 80 } } },
   small:   { label: 'Chica',   W: 290, H: 130, gh: 55 },
   classic: { label: 'Clásica', W: 370, H: 170, gh: 64 },
   big:     { label: 'Grande',  W: 520, H: 240, gh: 85 },
@@ -307,7 +307,7 @@ const DIFF = {
   normal: { key: 'normal', label: 'Normal',  think: 11, speed: 0.86, predict: 0.45, aimErr: 0.22,  kickTol: 0.5,  sloppy: 0.05, gkSkill: 0.65 },
   hard:   { key: 'hard',   label: 'Difícil', think: 5,  speed: 0.96, predict: 0.85, aimErr: 0.08,  kickTol: 0.28, sloppy: 0.01, gkSkill: 0.9 },
   expert: { key: 'expert', label: 'Experto', think: 2,  speed: 1,    predict: 1,    aimErr: 0.015, kickTol: 0.14, sloppy: 0,    gkSkill: 1 },
-  impossible: { key: 'impossible', label: 'Imposible', think: 1, speed: 1, kick: 1, v2: true, rt: 11, predict: 1, aimErr: 0, kickTol: 0.06, sloppy: 0, gkSkill: 1, smart: true }
+  impossible: { key: 'impossible', label: 'Imposible', think: 1, speed: 1, kick: 1, v2: true, rt: 11, predict: 1, aimErr: 0, kickTol: 0.06, sloppy: 0, gkSkill: 1, smart: true, press: true, attack: true }
 };
 
 /* Posiciones de saque para el equipo de la izquierda, en la cancha clásica */
@@ -877,7 +877,7 @@ function smEval(G, p, bx, by, vx, vy) {
   const n = res.goal >= 0 ? res.t : res.n;
   if (p.diff.v2) {
     /* nunca mandarla cerca de mi arco (los palos pueden meterla aunque la simulación diga que pega afuera) */
-    const ox = team === 0 ? -G.geo.W : G.geo.W, rad = G.geo.gh + 34;
+    const ox = team === 0 ? -G.geo.W : G.geo.W, rad = Math.min(G.geo.gh + 34, Math.hypot(bx - ox, by) - 6);   // si ya está encima del arco: que al menos se aleje
     for (let k = 1; k <= n; k += 2) if (Math.hypot(SM.SPx[k] - ox, SM.SPy[k]) < rad) return { v: -900, kind: 'own' };
   }
   /* cuerpos en el camino en los primeros ticks (la simulación de la pelota no ve a los jugadores) */
@@ -969,6 +969,12 @@ function smDecide(G, p) {
 
   const block = () => {
     for (let k = 1; k <= nb; k++) {
+      if (D.v2) {
+        /* llegar adelante de la pelota (del lado de mi arco): si la toco de atrás la empujo para adentro */
+        const vl = Math.hypot(SM.BPvx[k], SM.BPvy[k]) || 1, fx = SM.BPx[k] + SM.BPvx[k] / vl * (R - 2), fy = SM.BPy[k] + SM.BPvy[k] / vl * (R - 2);
+        if (smReach(p, fx, fy, 6) <= k) { A.tx = fx; A.ty = fy; A.mode = 'seek'; A.plan = 'block'; return; }
+        continue;
+      }
       if (smReach(p, SM.BPx[k], SM.BPy[k], R - 4) <= k) { A.tx = SM.BPx[k]; A.ty = SM.BPy[k]; A.mode = 'seek'; return; }
     }
     A.tx = ownX + dir * 18; A.ty = clamp(SM.BPy[nb], -gh + 8, gh - 8); A.mode = 'seek';
@@ -1036,6 +1042,8 @@ function smDecide(G, p) {
     return;
   }
 
+  /* saque del rival: pararse en la línea pelota-arco, al borde del círculo (tapa el tiro directo del saque) */
+  if (D.v2 && G.phase === 'kickoff' && G.kickTeam !== p.team) { A.tx = -dir * (g.kr + p.r + 2); A.ty = 0; A.mode = 'arrive'; A.plan = 'ko'; return; }
   /* voy yo a la pelota */
   if (shotOnUs && mates.length === 1 && tMe > 3) { block(); return; }
   /* cerca de mi arco no me la juego: si el rival está cerca de la pelota, primero tapo */
@@ -1051,6 +1059,17 @@ function smDecide(G, p) {
   if (!steal && (tOpp + 4 < tMe || (danger && tMe > tOpp - 7)) && G.phase !== 'kickoff') {
     const tp = Math.min(Math.round(tOpp), nb), px = SM.BPx[tp], py = SM.BPy[tp];
     const far = Math.hypot(px - ownX, py);
+    if (D.press) {
+      /* presión: pegarse a la pelota del lado de mi arco y disputarla (como un buen jugador de HaxBall), sin dejar de cerrar el ángulo */
+      const ob = oppFirst ? Math.hypot(oppFirst.x - px, oppFirst.y - py) : 99;
+      const myProj = (p.x - px) * (ownX - px) / (far || 1) + (p.y - py) * (-py) / (far || 1);
+      const near = far < 150 ? 10 : 0;
+      goalSide(px, py, myProj > 8 ? R + 2 + near + (ob < R + 6 ? 0 : 4) : R + 16 + near);
+      if (Math.hypot(A.tx - p.x, A.ty - p.y) < 60) A.mode = 'seek';
+      A.plan = 'press';
+      if (smReach(p, A.tx, A.ty, 4) > tOpp + 18 && mates.length === 1) goalSide(px, py, far * 0.5);
+      return;
+    }
     goalSide(px, py, clamp(far * 0.3, 32, 70));
     if (smReach(p, A.tx, A.ty, 4) > tOpp + 10 && mates.length === 1) goalSide(px, py, far * 0.6);
     return;
@@ -1099,7 +1118,9 @@ function smDecide(G, p) {
   }
   const holdV = smHold(G, p, bx, by, t0);
   let ux, uy;
-  if (bestU && bestV > holdV) { ux = bestU[0]; uy = bestU[1]; A.plan = bestKind; A.planV = bestV; }
+  /* pegada a mi arco no se conduce: se despeja */
+  const onLine = D.v2 && Math.abs(bx - ownX) < 45 && Math.abs(by) < gh + 30 && bestU && bestV > -800;
+  if (bestU && (bestV > holdV || onLine)) { ux = bestU[0]; uy = bestU[1]; A.plan = bestKind; A.planV = bestV; }
   else {
     /* conducir: hacia el arco, abriéndose del rival que está más cerca */
     A.plan = 'carry'; A.planV = holdV;
@@ -1164,7 +1185,8 @@ function smTick(G, p) {
     const caller = callerFor(G, p);
     if (e.kind === 'own') kick = false;
     else if (caller && e.kind === 'pass' && e.who === caller && e.close < 38 && e.ps > 0.3) kick = true;   // pase al pie del que la pidió
-    else if (e.kind === 'shot' && e.pg > 0.3) kick = true;
+    else if (e.kind === 'shot' && e.pg > (D.attack ? 0.18 : 0.3)) kick = true;
+    else if (D.press && contested && e.kind !== 'blocked' && e.v > hold - 40) kick = true;   // disputa: sacarla para adelante
     else if (e.v > hold + 6 && e.v > plan - 25) kick = true;
     else if (A.stuck > 25 && (e.v > hold - 70 || A.stuck > 45)) kick = true;
   } else A.stuck = 0;
@@ -1177,7 +1199,7 @@ function smTick(G, p) {
     dx /= d; dy /= d;
     let sp = vmax;
     if (A.mode === 'arrive') sp = Math.min(vmax, Math.sqrt(2 * a * 8 * d) * 0.55);
-    else if (A.mode === 'carry') sp = Math.min(vmax, Math.hypot(b.vx, b.vy) + 1.1);   // conducir sin pegarle de más
+    else if (A.mode === 'carry') sp = Math.min(vmax, Math.hypot(b.vx, b.vy) + (D.attack ? 1.6 : 1.1));   // conducir sin pegarle de más
     let wx = dx * sp - p.vx, wy = dy * sp - p.vy; const wl = Math.hypot(wx, wy);
     if (wl > 0.02) { ix = wx / wl * Math.min(1, wl / (a * 2)); iy = wy / wl * Math.min(1, wl / (a * 2)); }
   } else { ix = -p.vx * 4; iy = -p.vy * 4; }
@@ -2515,7 +2537,8 @@ function drawGame(G, alpha, extra) {
   const geo = G.geo, top = 74, bot = G.cfg.stadium ? 30 : 14, side = 10;
   const aw = VW - side * 2, ah = VH - top - bot;
   const SG = stadiumGeo(G), ex = SG ? SG.ox : geo.boxW, ey = SG ? SG.oy : geo.boxH;
-  const sc = Math.min(aw / (2 * (ex + 6)), ah / (2 * (ey + 6)));
+  /* como en HaxBall: la cancha no se agranda más que ~1 px por unidad (si no, la pelota parece mucho más rápida) */
+  const sc = Math.min(aw / (2 * (ex + 6)), ah / (2 * (ey + 6)), Math.max(1, VW / 1280));
   const ox = VW / 2, oy = top + ah / 2;
   const ix = d => d.px + (d.x - d.px) * alpha, iy = d => d.py + (d.y - d.py) * alpha;
 
