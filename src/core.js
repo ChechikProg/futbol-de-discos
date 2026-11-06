@@ -27,7 +27,7 @@ const DIFF = {
   normal: { key: 'normal', label: 'Normal',  think: 11, speed: 0.86, predict: 0.45, aimErr: 0.22,  kickTol: 0.5,  sloppy: 0.05, gkSkill: 0.65 },
   hard:   { key: 'hard',   label: 'Difícil', think: 5,  speed: 0.96, predict: 0.85, aimErr: 0.08,  kickTol: 0.28, sloppy: 0.01, gkSkill: 0.9 },
   expert: { key: 'expert', label: 'Experto', think: 2,  speed: 1,    predict: 1,    aimErr: 0.015, kickTol: 0.14, sloppy: 0,    gkSkill: 1 },
-  impossible: { key: 'impossible', label: 'Imposible', think: 1, speed: 1, kick: 1, v2: true, rt: 11, predict: 1, aimErr: 0, kickTol: 0.06, sloppy: 0, gkSkill: 1, smart: true, press: true, attack: true, guard: false, aim: true, wall: true, sure: true, engage: true, cover: true, clear: true }
+  impossible: { key: 'impossible', label: 'Imposible', think: 1, speed: 1, kick: 1, v2: true, rt: 11, predict: 1, aimErr: 0, kickTol: 0.06, sloppy: 0, gkSkill: 1, smart: true, press: true, attack: true, guard: false, aim: true, wall: true, sure: true, engage: true, cover: true, clear: true, safe: false, far: true, kosafe: true }
 };
 
 /* Posiciones de saque para el equipo de la izquierda, en la cancha clásica */
@@ -520,7 +520,7 @@ function aiDecide(G, p) {
      yendo al punto del recorrido que alcanza primero.
    En cada tick, si tiene la pelota al alcance, compara patear ahora contra seguir con su plan. */
 
-const SM = { tables: {}, inv: {}, BPx: new Float64Array(181), BPy: new Float64Array(181), BPvx: new Float64Array(181), BPvy: new Float64Array(181),
+const SM = { tables: {}, inv: {}, BPx: new Float64Array(361), BPy: new Float64Array(361), BPvx: new Float64Array(361), BPvy: new Float64Array(361),
   SPx: new Float64Array(181), SPy: new Float64Array(181), pw: null };
 (function () { SM.pw = new Float64Array(401); let v = 1; for (let n = 0; n <= 400; n++) { SM.pw[n] = v; v *= C.pDamp; } })();
 const SM_SHOT = 600;     // lo que vale un gol en la escala de las acciones
@@ -603,6 +603,34 @@ function smCover(G, p, px, py, tp) {
     }
   }
   return best;
+}
+/* PEOR CASO: si el rival patea la pelota desde (bx, by) en cualquier dirección (con rebotes en las paredes) y yo estoy en (cx, cy) cuando la patea,
+   ¿en cuántas direcciones (de 51) entra gol sin que yo llegue a tapar? Es lo que hacen los buenos: pararse donde ningún tiro entra. */
+const EXX = new Float64Array(320), EXY = new Float64Array(320);
+function smExposure(G, p, bx, by, cx, cy) {
+  const g = G.geo, br = G.ball.r, bc = G.ball.bCoef * C.wallBC, H = g.H - br, Wb = g.W - br, mouth = g.gh - br;
+  const dir = p.team === 0 ? 1 : -1, ownX = -dir * g.W, vk = G.phys.kickStr * G.ball.invMass + 1.3;
+  const fake = Object.create(p); fake.x = cx; fake.y = cy; fake.vx = 0; fake.vy = 0;
+  const near = p.r + br - 5, base = ownX >= bx ? 0 : Math.PI;   // con margen: rozar la pelota no alcanza para taparla
+  let threats = 0;
+  for (let a = -25; a <= 25; a++) {
+    const th = base + a * 0.07;
+    let x = bx, y = by, vx = Math.cos(th) * vk, vy = Math.sin(th) * vk, kg = -1;
+    for (let i = 1; i <= 300; i++) {
+      x += vx; y += vy;
+      if (y > H) { y = H; vy = -vy * bc; } else if (y < -H) { y = -H; vy = -vy * bc; }
+      if (Math.abs(y) > mouth) { if (x > Wb) { x = Wb; vx = -vx * bc; } else if (x < -Wb) { x = -Wb; vx = -vx * bc; } }
+      else if ((x - ownX) * dir < 0) { kg = i; EXX[i] = x; EXY[i] = y; break; }
+      vx *= C.bDamp; vy *= C.bDamp; EXX[i] = x; EXY[i] = y;
+      if (Math.abs(vx) + Math.abs(vy) < 0.15) break;
+    }
+    if (kg < 0) continue;
+    let blocked = false;
+    for (let i = 2; i <= kg; i += 3) if (smReach(fake, EXX[i], EXY[i], near) <= i - 6) { blocked = true; break; }
+    if (!blocked && smReach(fake, EXX[kg], EXY[kg], near) <= kg - 6) blocked = true;
+    if (!blocked) threats++;
+  }
+  return threats;
 }
 function smDanger(G, team, x, y) {
   const g = G.geo, dir = team === 0 ? 1 : -1, back = clamp((g.W - x * dir) / (2 * g.W), 0, 1);
@@ -691,10 +719,10 @@ function smSolve(bvx, bvy, dx, dy, ks) {
   return { s, ux: (s * dx - bvx) / ks, uy: (s * dy - bvy) / ks };
 }
 
-function smDecide(G, p) {
+function smDecide0(G, p) {
   const A = p.ai, D = p.diff, g = G.geo, b = G.ball, W = g.W, H = g.H, gh = g.gh;
   const dir = p.team === 0 ? 1 : -1, ownX = -dir * W, oppX = dir * W, R = p.r + b.r;
-  const N = 150;
+  const N = D.far ? 320 : 150;   // horizonte largo: un tiro de pared tarda ~200 ticks en llegar
   const path = smSim(G, b.x, b.y, b.vx, b.vy, N, SM.BPx, SM.BPy, SM.BPvx, SM.BPvy);
   const nb = path.goal >= 0 ? Math.max(1, path.t - 1) : path.n;
   if (path.goal >= 0) for (let i = path.t; i <= N; i++) { SM.BPx[i] = SM.BPx[path.t - 1]; SM.BPy[i] = SM.BPy[path.t - 1]; SM.BPvx[i] = 0; SM.BPvy[i] = 0; }
@@ -708,6 +736,7 @@ function smDecide(G, p) {
   for (const q of mates) { const s = tOf.get(q) - (q.ai.chaser ? 5 : 0); if (s < best) { best = s; att = q; } }
   for (const q of mates) q.ai.chaser = q === att;
   const tMe = tOf.get(p), ours = tOf.get(att) + 4 <= tOpp;
+  A.tMe = tMe; A.tOpp = tOpp; A.ours = ours; A.isAtt = p === att;
   const shotOnUs = path.goal === 1 - p.team;
   A.plan = null; A.planV = -1e9;
 
@@ -791,7 +820,21 @@ function smDecide(G, p) {
   }
 
   /* saque del rival: pararse en la línea pelota-arco, al borde del círculo (tapa el tiro directo del saque) */
-  if (D.v2 && G.phase === 'kickoff' && G.kickTeam !== p.team) { A.tx = -dir * (g.kr + p.r + 2); A.ty = 0; A.mode = 'arrive'; A.plan = 'ko'; return; }
+  if (D.v2 && G.phase === 'kickoff' && G.kickTeam !== p.team) {
+    let bx0 = -dir * (g.kr + p.r + 2), by0 = 0;
+    if (D.kosafe) {   // elegir el lugar del saque desde el que no entra ningún tiro (directo o de pared)
+      if (A.koKey !== G.kickTeam + ':' + G.score.join('-')) {
+        let bc = 1e9;
+        for (const dx of [0, 25, 50, 80, 120, 170]) for (const y of [0, -30, 30, -60, 60]) {
+          const x = -dir * (g.kr + p.r + 2 + dx), c = smExposure(G, p, 0, 0, x, y) * 10 + Math.abs(y) * 0.05 + dx * 0.03;
+          if (c < bc) { bc = c; A.koX = x; A.koY = y; }
+        }
+        A.koKey = G.kickTeam + ':' + G.score.join('-');
+      }
+      bx0 = A.koX; by0 = A.koY;
+    }
+    A.koT = G.tick; A.tx = bx0; A.ty = by0; A.mode = 'arrive'; A.plan = 'ko'; return;
+  }
   /* voy yo a la pelota */
   if (shotOnUs && mates.length === 1 && tMe > 3) { block(); return; }
   /* cerca de mi arco no me la juego: si el rival está cerca de la pelota, primero tapo */
@@ -925,6 +968,37 @@ function smDecide(G, p) {
 }
 
 /* cada tick: patear solo si conviene más que seguir con el plan, y moverse con control de velocidad */
+/* control de peor caso: si el lugar al que voy a presionar/marcar deja un tiro (de pared o directo) sin tapar, elijo otro más seguro */
+function smDecide(G, p) {
+  smDecide0(G, p);
+  const A = p.ai, D = p.diff;
+  if (!D.safe || G.phase !== 'play') return;
+  if (A.plan === 'block' || A.plan === 'ko' || (A.isAtt && A.ours) || A.tMe <= 10) { A.gx = null; return; }
+  const dir = p.team === 0 ? 1 : -1, ownX = -dir * G.geo.W, b = G.ball;
+  if (A.gT == null || G.tick - A.gT >= 5) {
+    A.gT = G.tick; A.gx = null;
+    const tp = clamp(Math.round(A.tOpp), 25, 45);   // aunque ya la tenga, el tiro puede salir en cualquier momento: evalúo dónde voy a estar en ~25-45 ticks
+    const ox = SM.BPx[tp], oy = SM.BPy[tp];
+    const at = (tx, ty) => { const dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy) || 1, m = Math.min(d, 2.3 * tp); return [p.x + dx / d * m, p.y + dy / d * m]; };
+    let q = at(A.tx, A.ty), t0 = smExposure(G, p, ox, oy, q[0], q[1]);
+    if (t0 >= 3 && Math.abs(ox - ownX) > 230) {
+      /* menor retirada que deje (casi) todo tapado */
+      const mx = ownX + dir * 20, my = 0; let bt = null, bb = t0;
+      for (const f of [0.15, 0.3, 0.45, 0.6, 0.8, 1]) {
+        for (const lat of [0, -45, 45]) {
+          const tx = A.tx + (mx - A.tx) * f, ty = clamp(A.ty + (my - A.ty) * f + lat, -G.geo.H + 20, G.geo.H - 20);
+          q = at(tx, ty); const e = smExposure(G, p, ox, oy, q[0], q[1]);
+          if (e <= 1 && e < bb - 1) { bt = [tx, ty]; bb = -1; break; }
+          if (e < bb - 2) { bb = e; bt = [tx, ty]; }
+        }
+        if (bb === -1) break;
+      }
+      if (bt) { A.gx = bt[0]; A.gy = bt[1]; }
+    }
+  }
+  if (A.gx != null) { A.tx = A.gx; A.ty = A.gy; A.mode = Math.hypot(A.tx - p.x, A.ty - p.y) > 45 ? 'seek' : 'arrive'; A.plan = 'safe'; }
+}
+
 function smTick(G, p) {
   const A = p.ai, D = p.diff;
   if (G.phase === 'goal') { p.in.dx = p.in.dy = 0; p.in.kick = false; return; }
@@ -977,4 +1051,4 @@ function smTick(G, p) {
   if (D.digital) { const q = v => (v > 0.38 ? 1 : v < -0.38 ? -1 : 0); p.in.dx = q(p.in.dx); p.in.dy = q(p.in.dy); }   // como un teclado (solo para pruebas)
 }
 
-if (typeof module !== 'undefined') module.exports = { predictCross, totals, callForBall, PHYS, C, PITCHES, PITCH_LIMITS, DIFF, makeGeo, createGame, step };
+if (typeof module !== 'undefined') module.exports = { smExposure, predictCross, totals, callForBall, PHYS, C, PITCHES, PITCH_LIMITS, DIFF, makeGeo, createGame, step };
