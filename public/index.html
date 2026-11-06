@@ -307,7 +307,7 @@ const DIFF = {
   normal: { key: 'normal', label: 'Normal',  think: 11, speed: 0.86, predict: 0.45, aimErr: 0.22,  kickTol: 0.5,  sloppy: 0.05, gkSkill: 0.65 },
   hard:   { key: 'hard',   label: 'Difícil', think: 5,  speed: 0.96, predict: 0.85, aimErr: 0.08,  kickTol: 0.28, sloppy: 0.01, gkSkill: 0.9 },
   expert: { key: 'expert', label: 'Experto', think: 2,  speed: 1,    predict: 1,    aimErr: 0.015, kickTol: 0.14, sloppy: 0,    gkSkill: 1 },
-  impossible: { key: 'impossible', label: 'Imposible', think: 1, speed: 1, kick: 1, v2: true, rt: 11, predict: 1, aimErr: 0, kickTol: 0.06, sloppy: 0, gkSkill: 1, smart: true, press: true, attack: true, guard: false, aim: true, wall: true, sure: true }
+  impossible: { key: 'impossible', label: 'Imposible', think: 1, speed: 1, kick: 1, v2: true, rt: 11, predict: 1, aimErr: 0, kickTol: 0.06, sloppy: 0, gkSkill: 1, smart: true, press: true, attack: true, guard: false, aim: true, wall: true, sure: true, engage: true, cover: true, clear: true }
 };
 
 /* Posiciones de saque para el equipo de la izquierda, en la cancha clásica */
@@ -861,6 +861,29 @@ function smPos(G, team, x, y) {
   const g = G.geo, dir = team === 0 ? 1 : -1, prog = clamp((x * dir + g.W) / (2 * g.W), 0, 1);
   return 30 + 170 * Math.pow(prog, 1.5) + (prog > 0.6 ? 70 * (prog - 0.6) / 0.4 * (1 - Math.min(1, Math.abs(y) / g.H)) : 0);
 }
+/* dónde pararse para tapar el arco desde la pelota en (px, py): prueba puntos alrededor de la pelota y elige el que deja menos hueco (sirve para ángulos cerrados),
+   que llegue a tiempo y que quede adentro de la cancha */
+function smCover(G, p, px, py, tp) {
+  const g = G.geo, dir = p.team === 0 ? 1 : -1, ownX = -dir * g.W, R = p.r + G.ball.r;
+  const dx = ownX - px, sx = dx >= 0 ? 1 : -1, adx = Math.abs(dx);
+  if (adx < 8) return null;
+  const yEff = g.gh - 8 - G.ball.r + 1;
+  const f1 = Math.atan2(-yEff - py, adx), f2 = Math.atan2(yEff - py, adx), D = Math.hypot(adx, py);
+  let best = null, bc = 1e9;
+  for (const d of [R + 1, R + 8, R + 18, R + 32, R + 50, R + 75]) {
+    const hw = Math.asin(Math.min(1, R / d));
+    for (let i = -6; i <= 6; i++) {
+      const f = (f1 + f2) / 2 + i * Math.max(0.05, (f2 - f1) / 7);
+      const cx = px + sx * d * Math.cos(f), cy = py + d * Math.sin(f);
+      if (Math.abs(cx) > g.W - p.r - 2 || Math.abs(cy) > g.H - p.r) continue;
+      const ov = Math.max(0, Math.min(f2, f + hw) - Math.max(f1, f - hw)), gap = Math.max(0, f2 - f1 - ov) * D;
+      const late = Math.max(0, smReach(p, cx, cy, 3) - (tp + 6));
+      const c = gap + late * 5 + 0.05 * Math.abs(d - (R + 8));
+      if (c < bc) { bc = c; best = { x: cx, y: cy, gap }; }
+    }
+  }
+  return best;
+}
 function smDanger(G, team, x, y) {
   const g = G.geo, dir = team === 0 ? 1 : -1, back = clamp((g.W - x * dir) / (2 * g.W), 0, 1);
   return 25 + 230 * back * back * (1 - 0.4 * Math.min(1, Math.abs(y) / g.H));
@@ -878,7 +901,8 @@ function smEval(G, p, bx, by, vx, vy) {
   if (p.diff.v2) {
     /* nunca mandarla cerca de mi arco (los palos pueden meterla aunque la simulación diga que pega afuera) */
     const ox = team === 0 ? -G.geo.W : G.geo.W, rad = Math.min(G.geo.gh + 34, Math.hypot(bx - ox, by) - 6);   // si ya está encima del arco: que al menos se aleje
-    for (let k = 1; k <= n; k += 2) if (Math.hypot(SM.SPx[k] - ox, SM.SPy[k]) < rad) return { v: -900, kind: 'own' };
+    const d1 = Math.hypot(SM.SPx[1] - ox, SM.SPy[1]);
+    for (let k = 1; k <= n; k += 2) { const dk = Math.hypot(SM.SPx[k] - ox, SM.SPy[k]); if (dk < rad && !(p.diff.clear && dk > d1 - 3)) return { v: -900, kind: 'own' }; }   // clear: si la pelota se aleja del arco, se puede despejar
   }
   /* cuerpos en el camino en los primeros ticks (la simulación de la pelota no ve a los jugadores) */
   for (let k = 2; k <= Math.min(14, n); k++) {
@@ -980,6 +1004,10 @@ function smDecide(G, p) {
     A.tx = ownX + dir * 18; A.ty = clamp(SM.BPy[nb], -gh + 8, gh - 8); A.mode = 'seek';
   };
   const goalSide = (px, py, dist) => {
+    if (D.cover && mates.length === 1 && Math.abs(px - ownX) < 300) {   // solo en 1v1: en equipo el arquero y los marcadores se reparten el arco
+      const c = smCover(G, p, px, py, Math.min(tOpp, 60));
+      if (c) { A.tx = c.x; A.ty = c.y; A.mode = Math.hypot(c.x - p.x, c.y - p.y) > 45 ? 'seek' : 'arrive'; return; }
+    }
     if (D.v2) {
       /* si ya me pasaron (la pelota está más cerca de mi arco que yo) y está cerca del arco: volver a la boca del arco */
       const beaten = (p.x - px) * dir > -8 && Math.abs(px - ownX) < 190;
@@ -1059,6 +1087,15 @@ function smDecide(G, p) {
   if (!steal && (tOpp + 4 < tMe || (danger && tMe > tOpp - 7)) && G.phase !== 'kickoff') {
     const tp = Math.min(Math.round(tOpp), nb), px = SM.BPx[tp], py = SM.BPy[tp];
     const far = Math.hypot(px - ownX, py);
+    if (D.engage && Math.hypot(b.vx, b.vy) < 1.8 && Math.abs(b.x - ownX) > 260) {
+      /* el rival camina con la pelota: no retroceder hasta el arco. Si la pelota se le despega, ir a sacársela; si la lleva pegada, aguantar a distancia
+         (chocarlo de frente es perder el empujón) */
+      const gap = oppFirst ? Math.hypot(oppFirst.x - b.x, oppFirst.y - b.y) - oppFirst.r - b.r : 99;
+      if (gap > 7) { goalSide(b.x, b.y, R + 3); A.mode = 'seek'; }
+      else { goalSide(b.x, b.y, R + 26); if (Math.hypot(A.tx - p.x, A.ty - p.y) > 40) A.mode = 'seek'; }
+      A.plan = 'press';
+      return;
+    }
     if (D.press) {
       /* presión: pegarse a la pelota del lado de mi arco y disputarla (como un buen jugador de HaxBall), sin dejar de cerrar el ángulo */
       const ob = oppFirst ? Math.hypot(oppFirst.x - px, oppFirst.y - py) : 99;

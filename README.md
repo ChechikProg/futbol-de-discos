@@ -65,6 +65,7 @@ Tiene la misma velocidad y la misma patada que el jugador: la diferencia es solo
 - Gambetea amagando: si el rival se tira para un lado, sale para el otro.
 - Tiros seguros: apunta entre 13 puntos del arco y solo remata de lejos si el tiro entra aunque el arquero reaccione rápido.
 - Autopases por la pared contra jugadores humanos: tira la pelota contra la banda por delante del rival y la busca del otro lado.
+- Aprendió de partidos reales (`test/fixtures`): ya no retrocede hasta su arco cuando el rival conduce la pelota despacio (aguanta a distancia y se la saca cuando se despega), y cerca de su arco elige dónde pararse probando puntos que tapen el ángulo (en 1v1), en vez de meterse en la red.
 - Presiona: cuando el rival tiene la pelota se le pega del lado de su arco y la disputa; remata apenas tiene un buen ángulo.
 - En el saque del rival se para en la línea pelota-arco; si viene un tiro, llega adelante de la pelota (nunca la empuja de atrás para adentro) y pegada a su arco despeja en vez de conducir.
 
