@@ -46,6 +46,10 @@ test/              pruebas (bots, Mundial, penales, navegador)
 
 `npm test` corre las pruebas del Mundial, la Libertadores y los penales. Las de navegador (`test/browser1.js`, `test/browser_pens.js`, `test/browser_lib.js`, `test/browser_call.js`) usan Playwright y esperan el servidor en el puerto 3100 (`PORT=3100 npm start`).
 
+## Repeticiones
+
+En la pausa y al terminar un partido contra la máquina hay un botón **Guardar partido**: baja un archivo `partido-*.json` con las teclas que apretaste en cada tick. Como el Imposible es determinista, `node test/replay.js archivo.json` reproduce el partido exacto (los goles y en qué tick), y sirve para ver cómo se le ganó.
+
 ## Física y canchas de futsal (Bazinga)
 
 Los partidos usan la física de los mapas de futsal de Bazinga: pelota chica y liviana (radio 6,25, más rápida al patearla), jugadores que no rebotan entre sí, aceleración 0,11 y 0,083 con patear apretado. La cancha es la del mapa real según la cantidad de jugadores: 1v1 y 2v2 usan "Futsal x1 and x2" (368×171, arco de 124, círculo de 65) y 3v3 usa "Futsal x3" (550×240, arco de 160, círculo de 80). Se dibuja a ~1 px por unidad, como en HaxBall, para que la velocidad se vea igual. Los penales mantienen la física clásica. Fuentes: [física de Bazinga](https://gist.github.com/EduMejorado/375a01d16e89fa65807ee73ef8ae1417), [Futsal x4 by Bazinga](https://haxmaps.com/map/13599), [Futsal x1 and x2](https://haxmaps.com/map/9824), [Futsal x3](https://haxmaps.com/map/8379).

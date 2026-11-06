@@ -2655,6 +2655,25 @@ function drawBanner(G) {
   g2.globalAlpha = 1; g2.textBaseline = 'alphabetic';
 }
 
+/* ---------- Repetición: se guardan tus teclas en cada tick; con eso se puede volver a jugar el partido exacto ---------- */
+let REC = null;
+function recStart(cfg) {
+  try { REC = { v: 1, cfg: JSON.parse(JSON.stringify(cfg, (k, v) => (k === 'stadium' || k === 'kits' || k === 'roster' ? undefined : v))), inputs: [] }; } catch (e) { REC = null; }
+}
+function recPush(i) {
+  if (!REC) return;
+  const q = v => (v > 0.5 ? 2 : v < -0.5 ? 0 : 1);
+  REC.inputs.push(String.fromCharCode(97 + q(i.dx) * 3 + q(i.dy) + (i.kick ? 9 : 0)));
+}
+function downloadReplay() {
+  if (!REC || !REC.inputs.length) return;
+  const data = JSON.stringify({ v: 1, when: new Date().toISOString(), cfg: REC.cfg, score: game ? game.score : null, inputs: REC.inputs.join('') });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+  a.download = 'partido-' + (REC.cfg.diff || 'x') + '-' + (game ? game.score.join('a') : '') + '.json';
+  document.body.append(a); a.click(); a.remove();
+}
+
 /* ---------- Bucle ---------- */
 const DT = 1000 / 60;
 let onLocalEnd = null;
@@ -2665,7 +2684,7 @@ function frame(now) {
     acc += Math.min(now - lastT, 100); lastT = now;
     const human = game.players.find(q => q.human);
     while (acc >= DT && !game.over) {
-      if (human) { const i = readInput(); human.in.dx = i.dx; human.in.dy = i.dy; human.in.kick = i.kick; }
+      if (human) { const i = readInput(); human.in.dx = i.dx; human.in.dy = i.dy; human.in.kick = i.kick; recPush(i); }
       step(game); acc -= DT;
       for (const e of game.events.splice(0)) sound(e);
     }
@@ -3511,7 +3530,7 @@ const LOCAL_GROUPS = [
     hints: {
       easy: 'Reacciona lento y define con poca puntería. Para entrar en calor.', normal: 'Juego parejo: persigue bien la pelota y a veces falla.',
       hard: 'Anticipa la pelota, se posiciona y define con precisión.', expert: 'Reflejos casi perfectos. Calcula rebotes, ataja y define al ángulo.',
-      impossible: 'Más rápido que vos, no falla y no regala nada. Tenés que jugar perfecto para ganarle.'
+      impossible: 'Misma velocidad que vos, pero lee la jugada, presiona, rebota en las paredes y remata a colocar. Tenés que jugar casi perfecto.'
     } },
   { key: 'side', label: 'Tu equipo', opts: [['0', 'Rojo', 'red'], ['1', 'Azul', 'blue']] },
   { key: 'time', label: 'Tiempo', opts: [['3', '3 min'], ['5', '5 min'], ['7', '7 min'], ['0', 'Sin límite']] },
@@ -3521,6 +3540,7 @@ const LOCAL_GROUPS = [
 /* ---------- Lanzar un partido local (contra la máquina o Mundial) ---------- */
 function launchGame(cfg, m, endHandler, pauseBtns) {
   loadFonts(); unlockAudio();
+  recStart(cfg);
   game = createGame(cfg);
   for (const p of game.players) p.me = p.human;
   view = game; mode = m; acc = 0; lastT = performance.now();
@@ -3534,6 +3554,7 @@ function startLocal() {
     size: +LOCAL.size, diff: LOCAL.diff, humanTeam: +LOCAL.side, timeLimit: +LOCAL.time, scoreLimit: +LOCAL.goals,
     pitch: pitchResolve(LOCAL.pitch, +LOCAL.size)
   }, 'local', localOver, () => [
+    { text: 'Guardar partido (para mejorar al bot)', fn: downloadReplay },
     { text: 'Reiniciar partido', fn: startLocal },
     { text: 'Cambiar opciones', fn: () => { onLocalEnd = null; setState('idle'); showScreen('local'); } }
   ]);
@@ -3551,6 +3572,7 @@ function localOver() {
       meta: DIFF[LOCAL.diff].label + ' · ' + LOCAL.size + ' vs ' + LOCAL.size + ' · cancha ' + pitchText(LOCAL.pitch) + (pen ? ' · gol de oro sin goles · penales ' + pen.u + '–' + pen.c : game.overtime ? ' · definido con gol de oro' : ''),
       buttons: [
         { text: 'Revancha', go: true, fn: startLocal },
+        { text: 'Guardar partido (para mejorar al bot)', fn: downloadReplay },
         { text: 'Cambiar opciones', fn: () => { setState('idle'); showScreen('local'); } },
         { text: 'Inicio', fn: () => { setState('idle'); showScreen('home'); } }
       ]

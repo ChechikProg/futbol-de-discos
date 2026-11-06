@@ -11,7 +11,7 @@ const LOCAL_GROUPS = [
     hints: {
       easy: 'Reacciona lento y define con poca puntería. Para entrar en calor.', normal: 'Juego parejo: persigue bien la pelota y a veces falla.',
       hard: 'Anticipa la pelota, se posiciona y define con precisión.', expert: 'Reflejos casi perfectos. Calcula rebotes, ataja y define al ángulo.',
-      impossible: 'Más rápido que vos, no falla y no regala nada. Tenés que jugar perfecto para ganarle.'
+      impossible: 'Misma velocidad que vos, pero lee la jugada, presiona, rebota en las paredes y remata a colocar. Tenés que jugar casi perfecto.'
     } },
   { key: 'side', label: 'Tu equipo', opts: [['0', 'Rojo', 'red'], ['1', 'Azul', 'blue']] },
   { key: 'time', label: 'Tiempo', opts: [['3', '3 min'], ['5', '5 min'], ['7', '7 min'], ['0', 'Sin límite']] },
@@ -21,6 +21,7 @@ const LOCAL_GROUPS = [
 /* ---------- Lanzar un partido local (contra la máquina o Mundial) ---------- */
 function launchGame(cfg, m, endHandler, pauseBtns) {
   loadFonts(); unlockAudio();
+  recStart(cfg);
   game = createGame(cfg);
   for (const p of game.players) p.me = p.human;
   view = game; mode = m; acc = 0; lastT = performance.now();
@@ -34,6 +35,7 @@ function startLocal() {
     size: +LOCAL.size, diff: LOCAL.diff, humanTeam: +LOCAL.side, timeLimit: +LOCAL.time, scoreLimit: +LOCAL.goals,
     pitch: pitchResolve(LOCAL.pitch, +LOCAL.size)
   }, 'local', localOver, () => [
+    { text: 'Guardar partido (para mejorar al bot)', fn: downloadReplay },
     { text: 'Reiniciar partido', fn: startLocal },
     { text: 'Cambiar opciones', fn: () => { onLocalEnd = null; setState('idle'); showScreen('local'); } }
   ]);
@@ -51,6 +53,7 @@ function localOver() {
       meta: DIFF[LOCAL.diff].label + ' · ' + LOCAL.size + ' vs ' + LOCAL.size + ' · cancha ' + pitchText(LOCAL.pitch) + (pen ? ' · gol de oro sin goles · penales ' + pen.u + '–' + pen.c : game.overtime ? ' · definido con gol de oro' : ''),
       buttons: [
         { text: 'Revancha', go: true, fn: startLocal },
+        { text: 'Guardar partido (para mejorar al bot)', fn: downloadReplay },
         { text: 'Cambiar opciones', fn: () => { setState('idle'); showScreen('local'); } },
         { text: 'Inicio', fn: () => { setState('idle'); showScreen('home'); } }
       ]

@@ -626,6 +626,25 @@ function drawBanner(G) {
   g2.globalAlpha = 1; g2.textBaseline = 'alphabetic';
 }
 
+/* ---------- Repetición: se guardan tus teclas en cada tick; con eso se puede volver a jugar el partido exacto ---------- */
+let REC = null;
+function recStart(cfg) {
+  try { REC = { v: 1, cfg: JSON.parse(JSON.stringify(cfg, (k, v) => (k === 'stadium' || k === 'kits' || k === 'roster' ? undefined : v))), inputs: [] }; } catch (e) { REC = null; }
+}
+function recPush(i) {
+  if (!REC) return;
+  const q = v => (v > 0.5 ? 2 : v < -0.5 ? 0 : 1);
+  REC.inputs.push(String.fromCharCode(97 + q(i.dx) * 3 + q(i.dy) + (i.kick ? 9 : 0)));
+}
+function downloadReplay() {
+  if (!REC || !REC.inputs.length) return;
+  const data = JSON.stringify({ v: 1, when: new Date().toISOString(), cfg: REC.cfg, score: game ? game.score : null, inputs: REC.inputs.join('') });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+  a.download = 'partido-' + (REC.cfg.diff || 'x') + '-' + (game ? game.score.join('a') : '') + '.json';
+  document.body.append(a); a.click(); a.remove();
+}
+
 /* ---------- Bucle ---------- */
 const DT = 1000 / 60;
 let onLocalEnd = null;
@@ -636,7 +655,7 @@ function frame(now) {
     acc += Math.min(now - lastT, 100); lastT = now;
     const human = game.players.find(q => q.human);
     while (acc >= DT && !game.over) {
-      if (human) { const i = readInput(); human.in.dx = i.dx; human.in.dy = i.dy; human.in.kick = i.kick; }
+      if (human) { const i = readInput(); human.in.dx = i.dx; human.in.dy = i.dy; human.in.kick = i.kick; recPush(i); }
       step(game); acc -= DT;
       for (const e of game.events.splice(0)) sound(e);
     }
