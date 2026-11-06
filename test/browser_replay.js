@@ -13,9 +13,10 @@ const { createGame, step } = require('../src/core.js');
   const st = await page.evaluate(() => { const g = game; window.__snap = { tick: g.tick, ball: [g.ball.x, g.ball.y], ps: g.players.map(p => [p.x, p.y]) }; downloadReplay(); return window.__snap; });
   const file = await (await dl).path(); const R = JSON.parse(fs.readFileSync(file, 'utf8'));
   const G = createGame(R.cfg), me = G.players.find(p => p.human);
-  for (const ch of R.inputs) { const c = ch.charCodeAt(0) - 97, r = c % 9; me.in.dx = Math.floor(r / 3) - 1; me.in.dy = (r % 3) - 1; me.in.kick = c >= 9; step(G); G.events.length = 0; }
+  const inputs = R.rle ? R.inputs.replace(/([a-r])(\d*)/g, (m, c, n) => c.repeat(n ? +n : 1)) : R.inputs;
+for (const ch of inputs) { const c = ch.charCodeAt(0) - 97, r = c % 9; me.in.dx = Math.floor(r / 3) - 1; me.in.dy = (r % 3) - 1; me.in.kick = c >= 9; step(G); G.events.length = 0; }
   const diff = Math.hypot(G.ball.x - st.ball[0], G.ball.y - st.ball[1]);
-  console.log('ticks página', st.tick, '| ticks archivo', R.inputs.length, '| diferencia de la pelota', diff.toFixed(4), '| puntaje', G.score.join('-'));
-  if (diff > 0.01 || Math.abs(st.tick - R.inputs.length) > 1) errors.push('la repetición no coincide');
+  console.log('ticks página', st.tick, '| ticks archivo', inputs.length, '| diferencia de la pelota', diff.toFixed(4), '| puntaje', G.score.join('-'));
+  if (diff > 0.01 || Math.abs(st.tick - inputs.length) > 1) errors.push('la repetición no coincide');
   await browser.close(); console.log(errors.length ? 'ERRORES: ' + errors.join(' | ') : 'REPLAY OK'); process.exit(errors.length ? 1 : 0);
 })().catch(e => { console.error('FALLÓ', e.message.slice(0, 500)); process.exit(1); });

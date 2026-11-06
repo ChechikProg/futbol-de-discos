@@ -2704,7 +2704,7 @@ function recPush(i) {
 }
 function downloadReplay() {
   if (!REC || !REC.inputs.length) return;
-  const data = JSON.stringify({ v: 1, when: new Date().toISOString(), cfg: REC.cfg, score: game ? game.score : null, inputs: REC.inputs.join('') });
+  const data = JSON.stringify({ v: 1, when: new Date().toISOString(), cfg: REC.cfg, score: game ? game.score : null, inputs: REC.inputs.join('').replace(/(.)\1*/g, (m, c) => c + (m.length > 1 ? m.length : '')), rle: 1 });   // tramos repetidos: "e24h72" = 24 'e' y 72 'h'
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
   a.download = 'partido-' + (REC.cfg.diff || 'x') + '-' + (game ? game.score.join('a') : '') + '.json';
