@@ -307,7 +307,7 @@ const DIFF = {
   normal: { key: 'normal', label: 'Normal',  think: 11, speed: 0.86, predict: 0.45, aimErr: 0.22,  kickTol: 0.5,  sloppy: 0.05, gkSkill: 0.65 },
   hard:   { key: 'hard',   label: 'Difícil', think: 5,  speed: 0.96, predict: 0.85, aimErr: 0.08,  kickTol: 0.28, sloppy: 0.01, gkSkill: 0.9 },
   expert: { key: 'expert', label: 'Experto', think: 2,  speed: 1,    predict: 1,    aimErr: 0.015, kickTol: 0.14, sloppy: 0,    gkSkill: 1 },
-  impossible: { key: 'impossible', label: 'Imposible', think: 1, speed: 1, kick: 1, v2: true, rt: 11, predict: 1, aimErr: 0, kickTol: 0.06, sloppy: 0, gkSkill: 1, smart: true, press: true, attack: true, guard: false, aim: true, wall: true, sure: true, engage: true, cover: true, clear: true, safe: false, far: true, kosafe: true }
+  impossible: { key: 'impossible', label: 'Imposible', think: 1, speed: 1, kick: 1, v2: true, rt: 11, predict: 1, aimErr: 0, kickTol: 0.06, sloppy: 0, gkSkill: 1, smart: true, press: true, attack: true, guard: false, aim: true, wall: true, sure: true, engage: true, cover: true, clear: true, safe: false, far: true, kosafe: true, guard2: true, gmargin: 5 }
 };
 
 /* Posiciones de saque para el equipo de la izquierda, en la cancha clásica */
@@ -912,6 +912,68 @@ function smExposure(G, p, bx, by, cx, cy) {
   }
   return threats;
 }
+/* GUARDIA: dónde pararme para que NINGÚN tiro desde (bx, by) (directo o de rebote en las bandas) entre sin que yo llegue a cortarlo.
+   Simula una vez todos los tiros que terminan en mi arco y prueba posiciones alrededor de la pelota; elige la que deja menos
+   tiros libres, y entre las que tapan todo, la más cerca de la pelota (presionar sin regalar el tiro largo). */
+const GR = { n: 0, xs: [], ys: [], kg: new Int16Array(64) };
+for (let i = 0; i < 64; i++) { GR.xs.push(new Float32Array(200)); GR.ys.push(new Float32Array(200)); }
+function smGuardRays(G, p, bx, by, vk) {
+  const g = G.geo, br = G.ball.r, bc = G.ball.bCoef * C.wallBC, H = g.H - br, Wb = g.W - br, mouth = g.gh - br;
+  const dir = p.team === 0 ? 1 : -1, ownX = -dir * g.W, base = ownX >= bx ? 0 : Math.PI;
+  GR.n = 0;
+  for (let a = -30; a <= 30; a++) {
+    const th = base + a * 0.055;
+    let x = bx, y = by, vx = Math.cos(th) * vk, vy = Math.sin(th) * vk, kg = -1;
+    const xs = GR.xs[GR.n], ys = GR.ys[GR.n];
+    for (let i = 1; i < 400; i++) {
+      x += vx; y += vy;
+      if (y > H) { y = H; vy = -vy * bc; } else if (y < -H) { y = -H; vy = -vy * bc; }
+      if (Math.abs(y) > mouth) { if (x > Wb) { x = Wb; vx = -vx * bc; } else if (x < -Wb) { x = -Wb; vx = -vx * bc; } }
+      else if ((x - ownX) * dir < 0) { kg = i; break; }
+      vx *= C.bDamp; vy *= C.bDamp;
+      if ((i & 1) === 0 && (i >> 1) < 200) { xs[i >> 1] = x; ys[i >> 1] = y; }
+      if (Math.abs(vx) + Math.abs(vy) < 0.12) break;
+    }
+    if (kg > 0) { GR.kg[GR.n] = Math.min(kg, 399); GR.n++; if (GR.n >= 64) break; }
+  }
+  return GR.n;
+}
+/* cuántos de los tiros de smGuardRays quedan sin tapar si estoy en (cx, cy) con velocidad (vx, vy) cuando sale el tiro; react = ticks que tardo en reaccionar */
+function smGuardCount(G, p, cx, cy, vx, vy, react, stopAt) {
+  const fake = Object.create(p); fake.x = cx; fake.y = cy; fake.vx = vx; fake.vy = vy;
+  const near = p.r + G.ball.r - 4;
+  let open = 0;
+  for (let r = 0; r < GR.n; r++) {
+    const xs = GR.xs[r], ys = GR.ys[r], last = Math.min(199, (GR.kg[r] - 1) >> 1);
+    let ok = false;
+    for (let j = 1; j <= last; j++) if (smReach(fake, xs[j], ys[j], near) <= 2 * j - react) { ok = true; break; }
+    if (!ok) { open++; if (open >= stopAt) return open; }
+  }
+  return open;
+}
+function smGuard(G, p, bx, by, tp, minD) {
+  const g = G.geo, dir = p.team === 0 ? 1 : -1, ownX = -dir * g.W, R = p.r + G.ball.r;
+  const vk = G.phys.kickStr * G.ball.invMass + (p.diff.gk || 1.8);
+  if (!smGuardRays(G, p, bx, by, vk)) return null;
+  const react = p.diff.greact || 4, wO = p.diff.gwo || 30, wD = p.diff.gwd || 0.12;
+  const ga = Math.atan2(-by * 0.5, ownX - bx);
+  let best = null, bc = 1e9;
+  for (const d of [R + 2, R + 10, R + 20, R + 32, R + 46, R + 62, R + 82, R + 106, R + 135, R + 170]) {
+    if (d < (minD || 0)) continue;
+    for (let i = -7; i <= 7; i++) {
+      const f = ga + i * 0.16, cx = bx + Math.cos(f) * d, cy = by + Math.sin(f) * d;
+      if (Math.abs(cy) > g.H - p.r || (cx - ownX) * dir < 6) continue;
+      const late = Math.max(0, smReach(p, cx, cy, 2) - tp);
+      const cost0 = late * (p.diff.gwl || 4) + d * wD + Math.abs(i) * 0.4;
+      if (cost0 >= bc) continue;
+      const open = smGuardCount(G, p, cx, cy, 0, 0, react, Math.ceil((bc - cost0) / wO) + 1);
+      const c = cost0 + open * wO;
+      if (c < bc) { bc = c; best = { x: cx, y: cy, open, d }; }
+    }
+  }
+  return best;
+}
+
 function smDanger(G, team, x, y) {
   const g = G.geo, dir = team === 0 ? 1 : -1, back = clamp((g.W - x * dir) / (2 * g.W), 0, 1);
   return 25 + 230 * back * back * (1 - 0.4 * Math.min(1, Math.abs(y) / g.H));
@@ -1130,6 +1192,26 @@ function smDecide0(G, p) {
   if (!steal && (tOpp + 4 < tMe || (danger && tMe > tOpp - 7)) && G.phase !== 'kickoff') {
     const tp = Math.min(Math.round(tOpp), nb), px = SM.BPx[tp], py = SM.BPy[tp];
     const far = Math.hypot(px - ownX, py);
+    defend0(px, py, far);
+    if (D.guard2 && mates.length === 1) {
+      /* la presión de siempre, salvo que deje tiros (directos o de pared) que no llego a tapar y haya un lugar claramente más seguro */
+      if (!A.gCache || G.tick - A.gCacheT >= 3) {
+        A.gCacheT = G.tick;
+        const tpp = Math.max(tp, 2), ok = smGuardRays(G, p, px, py, G.phys.kickStr * b.invMass + (D.gk || 1.8));
+        const late = Math.max(0, smReach(p, A.tx, A.ty, 2) - tpp);
+        const po = ok ? smGuardCount(G, p, A.tx, A.ty, 0, 0, D.greact || 4, 99) : 0;
+        A.gCache = null;
+        if (po > 0) {
+          const gd = smGuard(G, p, px, py, tpp, 0);
+          if (gd && gd.open + (D.gmargin || 2) + late * (D.gwl || 4) / (D.gwo || 30) <= po) A.gCache = gd;
+        }
+      }
+      if (A.gCache) { const gd = A.gCache; A.tx = gd.x; A.ty = gd.y; A.mode = Math.hypot(A.tx - p.x, A.ty - p.y) > 30 ? 'seek' : 'arrive'; A.plan = 'guard2'; }
+    }
+    return;
+  }
+  function defend0(px, py, far) {
+    const tp = Math.min(Math.round(tOpp), nb);
     if (D.engage && Math.hypot(b.vx, b.vy) < 1.8 && Math.abs(b.x - ownX) > 260) {
       /* el rival camina con la pelota: no retroceder hasta el arco. Si la pelota se le despega, ir a sacársela; si la lleva pegada, aguantar a distancia
          (chocarlo de frente es perder el empujón) */
@@ -1152,7 +1234,6 @@ function smDecide0(G, p) {
     }
     goalSide(px, py, clamp(far * 0.3, 32, 70));
     if (smReach(p, A.tx, A.ty, 4) > tOpp + 10 && mates.length === 1) goalSide(px, py, far * 0.6);
-    return;
   }
 
   /* cerca de mi arco y del lado equivocado de la pelota: rodearla por el lado de mi arco (sin empujarla para adentro) */
@@ -1333,6 +1414,7 @@ function smTick(G, p) {
 
 if (typeof module !== 'undefined') module.exports = { smExposure, predictCross, totals, callForBall, PHYS, C, PITCHES, PITCH_LIMITS, DIFF, makeGeo, createGame, step };
 
+'use strict';
 /* ===== Mundial: sorteo, fase de grupos, llaves y simulación (sin DOM) ===== */
 const WC = (() => {
   /* c: código, n: nombre, r: valoración propia (tipo Elo), k: [camiseta, detalle], f: confederación */
@@ -1644,6 +1726,7 @@ const WC = (() => {
 
 if (typeof module !== 'undefined') module.exports = WC;
 
+'use strict';
 /* ===== Copa Libertadores: equipos, estadios, sorteo, grupos, llaves ida y vuelta y simulación (sin DOM) =====
    Formato: 32 equipos en 8 grupos de 4, todos contra todos a ida y vuelta (6 fechas). Pasan los 2 primeros.
    Octavos, cuartos y semis a ida y vuelta (define el global; si en la vuelta queda igualado: gol de oro y penales).
@@ -1981,6 +2064,7 @@ const LIB = (() => {
 
 if (typeof module !== 'undefined') module.exports = LIB;
 
+'use strict';
 /* ===== Tanda de penales al estilo del mapa de penales de HaxBall (sin interfaz) =====
    Cada penal se juega con la misma física del juego: la pelota está en el punto penal, el que patea
    arranca unos pasos atrás y corre a pegarle, y el arquero (un disco limitado a su área) trata de taparla.
@@ -2139,6 +2223,7 @@ const PEN = (() => {
 
 if (typeof module !== 'undefined') module.exports = PEN;
 
+'use strict';
 /* ===== Base de la interfaz: utilidades, controles, entrada, sonido, dibujo y bucle ===== */
 const $ = id => document.getElementById(id);
 function h(tag, props, ...kids) {
@@ -2813,6 +2898,7 @@ function loadFonts() {
   try { document.fonts.load('700 28px "Chakra Petch"'); document.fonts.load('600 12px "Barlow"'); } catch (e) { /* ok */ }
 }
 
+'use strict';
 /* ===== Pantallas del modo Mundial (local, contra la máquina) ===== */
 const WCCFG = Object.assign({ format: '48', diff: 'normal', minutes: '2', size: '1', pitch: { preset: 'futsal' }, team: 'ARG' }, store.get('wccfg', {}));
 if (!WCCFG.fv) { WCCFG.pitch = { preset: 'futsal' }; WCCFG.fv = 1; }
@@ -3107,6 +3193,7 @@ function initWc() {
   buildWcSetup();
 }
 
+'use strict';
 /* ===== Pantallas del modo Copa Libertadores ===== */
 const LIBCFG = Object.assign({ diff: 'normal', minutes: '2', size: '1', field: 'auto', team: 'BOC' }, store.get('libcfg', {}));
 if (!LIB.BY[LIBCFG.team]) LIBCFG.team = 'BOC';
@@ -3413,6 +3500,7 @@ function initLib() {
   buildLibSetup();
 }
 
+'use strict';
 /* ===== Penales (al estilo del mapa de penales de HaxBall): se juega sobre el arco, con la física del juego =====
    El que patea arranca atrás de la pelota, corre y le pega. El arquero se mueve dentro de su área. */
 const PK = { cur: null };
@@ -3629,6 +3717,7 @@ function drawPenHud(P) {
 
 function initPens() { mkScreen('pens'); }
 
+'use strict';
 /* ===== Inicio, partido contra la máquina y arranque ===== */
 const LOCAL = Object.assign({ size: '1', diff: 'normal', side: '0', time: '3', goals: '3', penFirst: 'r', pitch: { preset: 'futsal' } }, store.get('local', {}));
 if (!LOCAL.fv) { LOCAL.pitch = { preset: 'futsal' }; LOCAL.fv = 1; }   // las canchas de futsal de Bazinga pasan a ser las de siempre

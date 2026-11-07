@@ -66,6 +66,7 @@ Tiene la misma velocidad y la misma patada que el jugador: la diferencia es solo
 - Tiros seguros: apunta entre 13 puntos del arco y solo remata de lejos si el tiro entra aunque el arquero reaccione rápido.
 - Autopases por la pared contra jugadores humanos: tira la pelota contra la banda por delante del rival y la busca del otro lado.
 - Aprendió de partidos reales (`test/fixtures`): ya no retrocede hasta su arco cuando el rival conduce la pelota despacio (aguanta a distancia y se la saca cuando se despega), y cerca de su arco elige dónde pararse probando puntos que tapen el ángulo (en 1v1), en vez de meterse en la red.
+- Guardia contra tiros de lejos (1v1): simula todos los tiros posibles desde la pelota, directos y de rebote en las bandas, y si su posición de presión deja alguno que no llega a cortar, se corre a un lugar claramente más seguro (`smGuard` en `src/core.js`). Contra rivales que reaccionan rápido recibe la mitad de goles.
 - Presiona: cuando el rival tiene la pelota se le pega del lado de su arco y la disputa; remata apenas tiene un buen ángulo.
 - En el saque del rival se para en la línea pelota-arco; si viene un tiro, llega adelante de la pelota (nunca la empuja de atrás para adentro) y pegada a su arco despeja en vez de conducir.
 
